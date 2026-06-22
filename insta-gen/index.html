@@ -7,8 +7,6 @@
 
 <!-- Pretendard (100~900) — 디자인 폰트 통일 -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-<!-- 브라우저 OCR (토큰 0, 클라이언트에서 텍스트 1차 추출) -->
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
 <style>
   :root { --bg:#16130f; --panel:#211c17; --line:#3a322a; --accent:#e0668f; --text:#f3ede7; --muted:#9c9088; }
@@ -73,11 +71,10 @@
       <label class="upload">사진 1장을 선택하거나 끌어다 놓으세요
         <input type="file" id="file" accept="image/*">
       </label>
-      <div class="status" id="ocrStatus"></div>
     </div>
 
     <div class="card">
-      <h2>2 · 텍스트 (자동 추출 후 수정)</h2>
+      <h2>2 · 텍스트 (붙여넣고 수정)</h2>
       <div class="field"><label>상단 헤드라인</label><input type="text" id="t_headline" value="원형 최초공개"></div>
       <div class="field"><label>타이틀 (작품·시리즈)</label><input type="text" id="t_title" value="나루토 질풍전 G.E.M. 시리즈"></div>
       <div class="field"><label>제품명</label><input type="text" id="t_product" value="테노히라 나미카제 미나토 (미채색)"></div>
@@ -200,33 +197,15 @@ window.__loadImage = loadImage; // 검증용
 
 document.getElementById('file').addEventListener('change', async (e) => {
   const file = e.target.files[0]; if (!file) return;
-  const url = URL.createObjectURL(file);
-  await loadImage(url);
-  runOCR(url);
+  await loadImage(URL.createObjectURL(file));
 });
 
-// ── 브라우저 OCR (토큰 0). 실패/오프라인이면 기본값 유지 ──
-async function runOCR(url) {
-  const el = document.getElementById('ocrStatus');
-  if (typeof Tesseract === 'undefined') { el.textContent = '※ OCR 모듈 없음 — 텍스트는 직접 입력하세요.'; return; }
-  el.className = 'status busy'; el.textContent = '텍스트 인식 중… (첫 실행은 다소 걸립니다)';
-  try {
-    const { data } = await Tesseract.recognize(url, 'kor+jpn+eng', { logger: m => {
-      if (m.status === 'recognizing text') el.textContent = `텍스트 인식 중… ${Math.round(m.progress*100)}%`;
-    }});
-    const lines = data.text.split('\n').map(s => s.trim()).filter(s => s.length > 1);
-    if (lines.length) {
-      // best-effort 1차 배치 — 이후 사용자가 필드에서 수정
-      if (lines[0]) setText('headline', lines[0]);
-      if (lines[1]) setText('title', lines[1]);
-      if (lines[2]) setText('product', lines[2]);
-      el.className = 'status'; el.textContent = `✓ ${lines.length}줄 인식 — 필드에서 수정하세요.`;
-    } else { el.className = 'status'; el.textContent = '인식된 텍스트 없음 — 직접 입력하세요.'; }
-  } catch (err) {
-    el.className = 'status'; el.textContent = '※ OCR 실패 — 직접 입력하세요.';
-  }
-}
-function setText(key, v) { state.text[key] = v; document.getElementById('t_'+key).value = v; render(); }
+// 끌어다 놓기(드롭)
+['dragover','drop'].forEach(ev => document.addEventListener(ev, e => e.preventDefault()));
+document.addEventListener('drop', async (e) => {
+  const file = [...(e.dataTransfer?.files || [])].find(f => f.type.startsWith('image/'));
+  if (file) await loadImage(URL.createObjectURL(file));
+});
 
 // ── 텍스트 필드 → 즉시 반영 ──
 for (const k of ['headline','title','product','footer']) {
