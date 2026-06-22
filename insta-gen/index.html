@@ -8,9 +8,9 @@
 <style>
   :root { --bg:#f3f4f6; --panel:#ffffff; --line:#e3e5ea; --line2:#d2d6dd; --accent:#e0668f; --text:#1f2329; --muted:#6b7280; --danger:#d83a52; }
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', sans-serif; }
-  body { background: var(--bg); color: var(--text); display: flex; min-height: 100vh; gap: 28px; padding: 28px; }
+  body { background: var(--bg); color: var(--text); display: flex; min-height: 100vh; gap: 28px; padding: 28px; align-items: flex-start; }
 
-  .stage-wrap { flex: 0 0 auto; position: sticky; top: 28px; align-self: flex-start; }
+  .left { flex: 0 0 auto; width: 432px; display: flex; flex-direction: column; gap: 16px; }
   #stage { width: 432px; height: 540px; border-radius: 14px; box-shadow: 0 10px 36px rgba(0,0,0,.16); cursor: grab; touch-action: none; background: #e9eaee; }
   #stage.drag { cursor: grabbing; }
   .hint { color: var(--muted); font-size: 13px; margin-top: 10px; text-align: center; font-weight: 300; line-height: 1.5; }
@@ -30,21 +30,20 @@
   .field { margin-bottom: 12px; }
   .field:last-child { margin-bottom: 0; }
   .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; font-weight: 500; }
-  .field input[type=text], .field textarea { width: 100%; background: #fff; border: 1px solid var(--line2); border-radius: 8px; color: var(--text); padding: 9px 11px; font-size: 14px; font-weight: 500; font-family:'Pretendard',sans-serif; resize: vertical; }
+  .field input[type=text], .field textarea, .field select { width: 100%; background: #fff; border: 1px solid var(--line2); border-radius: 8px; color: var(--text); padding: 9px 11px; font-size: 14px; font-weight: 500; font-family:'Pretendard',sans-serif; resize: vertical; }
   .field textarea { line-height: 1.4; }
-  .field input:focus, .field textarea:focus { outline: none; border-color: var(--accent); }
-  .field input.invalid, .field textarea.invalid { border-color: var(--danger); background: #fff5f6; }
+  .field input:focus, .field textarea:focus, .field select:focus { outline: none; border-color: var(--accent); }
   .check { display:flex; align-items:center; gap:7px; margin-top:8px; font-size:13px; color:var(--text); cursor:pointer; }
   .check input { width:16px; height:16px; accent-color:var(--accent); cursor:pointer; }
-  .warn { display: none; color: var(--danger); font-size: 12px; margin-top: 5px; font-weight: 500; line-height: 1.4; }
-  .warn.show { display: block; }
-  .warn b { cursor: pointer; text-decoration: underline; }
+  .note { font-size: 12px; color: var(--muted); font-weight: 400; line-height: 1.5; margin-bottom: 10px; }
+  .preview-line { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 6px; background:#f6f2f4; border:1px solid var(--line); border-radius:7px; padding:6px 9px; }
 
   .slider, .stepper { display: flex; align-items: center; gap: 10px; margin-bottom: 11px; }
   .slider:last-child, .stepper:last-child { margin-bottom: 0; }
   .slider label, .stepper label { flex: 0 0 80px; font-size: 12px; color: var(--muted); }
   .slider input[type=range] { flex: 1; accent-color: var(--accent); }
   .slider .val { flex: 0 0 42px; text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; }
+  .stepper { margin-top: 8px; }
   .stepper .ctrl { display: flex; align-items: center; gap: 8px; }
   .stepper button { width: 30px; height: 30px; border: 1px solid var(--line2); background: #fff; border-radius: 8px; font-size: 18px; font-weight: 700; cursor: pointer; color: var(--text); line-height: 1; }
   .stepper button:hover { border-color: var(--accent); color: var(--accent); }
@@ -54,17 +53,31 @@
   .btn-primary { background: var(--accent); color: #fff; }
   .btn-primary:disabled { background: #d7d9de; color: #fff; cursor: not-allowed; }
   .blockmsg { color: var(--muted); font-size: 12px; margin-top: 8px; min-height: 14px; font-weight: 500; text-align: center; }
-  .note { font-size: 12px; color: var(--muted); font-weight: 400; line-height: 1.5; margin-bottom: 10px; }
+  .copybtns { display:flex; gap:8px; margin-bottom:8px; }
+  .btn2 { flex:1; border:1px solid var(--line2); background:#fff; border-radius:8px; padding:9px; font-size:13px; font-weight:600; cursor:pointer; color:var(--text); }
+  .btn2:hover { border-color:var(--accent); color:var(--accent); }
+  #t_copy { width:100%; min-height:220px; background:#fff; border:1px solid var(--line2); border-radius:8px; color:var(--text); padding:11px; font-size:13px; line-height:1.6; font-family:'Pretendard',sans-serif; resize:vertical; }
 </style>
 </head>
 <body>
-  <div class="stage-wrap">
-    <canvas id="stage" width="1080" height="1350"></canvas>
-    <div class="hint">사진 위를 <b>드래그</b>해서 위치 조정 · 휠/슬라이더로 <b>확대</b><br>업로드 · 끌어놓기 · <b>붙여넣기(Ctrl/⌘+V)</b> 모두 가능</div>
+  <div class="left">
+    <div>
+      <canvas id="stage" width="1080" height="1350"></canvas>
+      <div class="hint">사진 위를 <b>드래그</b>해서 위치 조정 · 휠/슬라이더로 <b>확대</b><br>업로드 · 끌어놓기 · <b>붙여넣기(Ctrl/⌘+V)</b> 모두 가능</div>
+    </div>
+    <div class="card">
+      <h2>원고 (캡션) — 복붙용</h2>
+      <div class="field"><label>일본어 작품명 (해시태그용 · 선택)</label><input type="text" id="t_jp" placeholder="예: 銀魂"></div>
+      <div class="copybtns">
+        <button class="btn2" id="genCopy">원고 생성 / 새로고침</button>
+        <button class="btn2" id="doCopy">복사</button>
+      </div>
+      <textarea id="t_copy" placeholder="‘원고 생성’을 누르면 위 텍스트값으로 캡션이 만들어집니다. 만든 뒤 자유롭게 수정하세요."></textarea>
+    </div>
   </div>
 
   <div class="panel">
-    <h1>인스타 카드 생성기 <small>① 텍스트 · ② 사진(크롭) · ③ 배경지(원본)</small></h1>
+    <h1>인스타 카드 생성기 <small>원문 → 정형 입력 → 카드 + 원고</small></h1>
 
     <div class="card">
       <h2>1 · 사진</h2>
@@ -73,30 +86,73 @@
 
     <div class="card">
       <h2>2 · 원문 입력 (선택)</h2>
-      <p class="note">일본어/원문 홍보 문구를 붙여넣고 Claude에게 주면, 저장 규칙대로 4줄을 만들어 줍니다. 받은 4줄을 아래 3번 칸에 붙여넣어 수정하세요. (별도 비용 없음)</p>
-      <div class="field"><textarea id="t_source" rows="5" placeholder="예) G.E.M. 시리즈 / NARUTO 질풍전 / 우치하 이타치＆사스케【재판】 ..."></textarea></div>
+      <p class="note">일본어/원문 홍보 문구를 붙여넣고 Claude에게 주면, 저장 규칙대로 아래 값을 채울 수 있게 정리해 줍니다. (별도 비용 없음)</p>
+      <div class="field"><textarea id="t_source" rows="5" placeholder="예) G.E.M. 시리즈 / 銀魂 은혼 / 神樂 카구라【한정 재판매판】 ..."></textarea></div>
     </div>
 
     <div class="card">
-      <h2>3 · 텍스트</h2>
+      <h2>3 · 텍스트 (양식 고정 — 순서·표기 자동)</h2>
       <div class="field">
-        <label>상단 헤드라인</label>
-        <input type="text" id="t_headline" value="원형 최초공개">
-        <div class="warn" id="w_headline"></div>
+        <label>① 헤드라인 (선택)</label>
+        <select id="t_headline">
+          <option>원형 최초공개</option>
+          <option>채색원형 최초공개</option>
+          <option>재판매 결정</option>
+          <option>한정 재판매 결정</option>
+          <option>예약 시작</option>
+          <option>발매 결정</option>
+        </select>
       </div>
       <div class="field">
-        <label>타이틀 (작품 + 시리즈)</label>
-        <input type="text" id="t_title" placeholder="예: 주술회전 룩업">
-        <div class="warn" id="w_title"></div>
-        <div class="stepper"><label>↑ 글자 크기</label><div class="ctrl"><button data-k="title" data-d="-4">−</button><span class="num" id="v_titleSize">80</span><button data-k="title" data-d="4">+</button></div></div>
+        <label>② 작품명 (IP)</label>
+        <input type="text" id="t_work" placeholder="예: 은혼 / 나루토 질풍전 / 주술회전">
       </div>
       <div class="field">
-        <label>제품명 (두 줄은 Enter로 줄바꿈)</label>
-        <textarea id="t_product" rows="2" placeholder="예: 고죠 사토루&#10;후시구로 메구미"></textarea>
+        <label>③ 시리즈/라인 (작품 뒤에 자동으로 붙음)</label>
+        <select id="t_line">
+          <optgroup label="스케일 피규어">
+            <option>G.E.M. 시리즈</option>
+            <option>스케일 피규어</option>
+            <option>GGG</option>
+            <option>루크리아</option>
+            <option>멜티 프린세스</option>
+          </optgroup>
+          <optgroup label="룩업">
+            <option>룩업</option>
+            <option>룩업 의상</option>
+            <option>룩업 미니어처</option>
+            <option>룩업 소품</option>
+          </optgroup>
+          <optgroup label="메가캣">
+            <option>메가캣 프로젝트</option>
+            <option>메가캣</option>
+            <option>빅 메가캣</option>
+            <option>메가캣 잘자</option>
+            <option>메가캣 찰싹</option>
+            <option>메가캣 뱃지</option>
+          </optgroup>
+          <optgroup label="컬렉션 피규어">
+            <option>컬렉션 피규어</option>
+            <option>쵸코링 컬렉션</option>
+          </optgroup>
+          <optgroup label="컬렉션 굿즈">
+            <option>컬렉션 굿즈</option>
+            <option>카라코로</option>
+            <option>버디코레</option>
+            <option>이루스타</option>
+            <option>꺄르르르</option>
+          </optgroup>
+        </select>
+        <div class="preview-line" id="titlePreview">타이틀: —</div>
+        <div class="stepper"><label>↑ 타이틀 크기</label><div class="ctrl"><button data-k="title" data-d="-4">−</button><span class="num" id="v_titleSize">80</span><button data-k="title" data-d="4">+</button></div></div>
+      </div>
+      <div class="field">
+        <label>④ 제품명 (두 줄은 Enter로 줄바꿈)</label>
+        <textarea id="t_product" rows="2" placeholder="예: 카무이 ver.弐 이 (발차기)&#10;카구라 (표정 파츠 동봉)"></textarea>
         <label class="check"><input type="checkbox" id="c_bullet"> 제품명 앞에 불렛(•) 표시</label>
-        <div class="stepper"><label>↑ 글자 크기</label><div class="ctrl"><button data-k="product" data-d="-4">−</button><span class="num" id="v_productSize">60</span><button data-k="product" data-d="4">+</button></div></div>
+        <div class="stepper"><label>↑ 제품명 크기</label><div class="ctrl"><button data-k="product" data-d="-4">−</button><span class="num" id="v_productSize">60</span><button data-k="product" data-d="4">+</button></div></div>
       </div>
-      <div class="field"><label>푸터</label><input type="text" id="t_footer" value="메가하우스 공식 스토어"></div>
+      <div class="field"><label>⑤ 푸터</label><input type="text" id="t_footer" value="메가하우스 공식 스토어"></div>
     </div>
 
     <div class="card">
@@ -115,7 +171,7 @@
 <script>
 const cv = document.getElementById('stage'), ctx = cv.getContext('2d');
 const W = 1080, H = 1350;
-const FRAME = { x: 110, y: 205, w: 860, h: 760, r: 36 }; // 이미지 박스 위치 (크기 유지)
+const FRAME = { x: 110, y: 190, w: 860, h: 760, r: 36 }; // 프레임을 위로 올려 텍스트와 여백 확보
 const MAXW = 920;
 
 const state = {
@@ -124,54 +180,12 @@ const state = {
   bg: { opacity: 0.50, blur: 45 },
   size: { title: 80, product: 60 },
   bullet: false,
-  text: { headline:'원형 최초공개', title:'', product:'', footer:'메가하우스 공식 스토어' },
+  work: '', line: 'G.E.M. 시리즈', jp: '',
+  text: { headline:'원형 최초공개', title:'G.E.M. 시리즈', product:'', footer:'메가하우스 공식 스토어' },
 };
 
-/* ── 띄어쓰기 검증 (UI 문구는 숨기되 기능은 유지) ── */
-const HEADLINES = ['원형 최초공개','채색원형 최초공개','재판매 결정','한정 재판매 결정','예약 시작','발매 결정','한정 예약 시작'];
-const SERIES = ['G.E.M. 시리즈','메가캣 프로젝트','룩업 미니어처','룩업 의상','룩업 판초','룩업 소품','룩업','스케일 피규어','컬렉션 피규어','컬렉션 굿즈','쵸코링 컬렉션','빅 메가캣','메가캣 잘자','메가캣 찰싹','메가캣 뱃지','메가캣','루크리아','멜티 프린세스','GGG','카라코로','버디코레','이루스타','꺄르르르'];
-const WORKS = ['주술회전','귀멸의 칼날','강철의 연금술사','나루토 질풍전','진격의 거인','은혼','원피스','하이큐','체인소맨','드래곤볼','블리치','나의 히어로 아카데미아','도쿄 리벤저스','스파이 패밀리','블루 록','명탐정 코난'];
-const despace = s => s.replace(/\s+/g,'');
-const WORKMAP = Object.fromEntries(WORKS.map(w => [despace(w), w]));
-
-function validateHeadline(v){ v=v.trim();
-  if(!v) return {ok:false, empty:true};
-  if(HEADLINES.includes(v)) return {ok:true};
-  const hit = HEADLINES.find(h=>despace(h)===despace(v));
-  if(hit) return {ok:false, msg:'띄어쓰기 오류 → 올바른 형태: ', fix:hit};
-  return {ok:false, msg:`정식 표기가 아님. 예: ${HEADLINES.slice(0,3).join(' / ')}`};
-}
-function validateTitle(v){ v=v.trim();
-  if(!v) return {ok:false, empty:true};
-  const ser = SERIES.find(s=> v===s || v.endsWith(' '+s));
-  if(!ser){ const sd=SERIES.find(s=>despace(v).endsWith(despace(s)));
-    if(sd) return {ok:false, msg:`시리즈명 띄어쓰기 오류 → '${sd}' 형태로`};
-    return {ok:false, msg:'끝에 올바른 시리즈명이 없음. 예: 룩업 / 스케일 피규어 / G.E.M. 시리즈'}; }
-  const work = v===ser ? '' : v.slice(0, v.length-ser.length-1).trim();
-  if(!work) return {ok:false, msg:'작품명이 비어 있음. 예: 주술회전 룩업'};
-  const correct = WORKMAP[despace(work)];
-  if(correct && correct!==work) return {ok:false, msg:'작품명 띄어쓰기 오류 → 올바른 형태: ', fix:`${correct} ${ser}`};
-  return {ok:true};
-}
-function runValidation(){
-  const checks=[['headline',validateHeadline(state.text.headline)],['title',validateTitle(state.text.title)]];
-  let allOk=true, anyEmpty=false;
-  for(const [k,r] of checks){
-    const inp=document.getElementById('t_'+k), warn=document.getElementById('w_'+k);
-    if(r.ok){ inp.classList.remove('invalid'); warn.classList.remove('show'); warn.innerHTML=''; }
-    else if(r.empty){ allOk=false; anyEmpty=true; inp.classList.remove('invalid'); warn.classList.remove('show'); warn.innerHTML=''; }
-    else { allOk=false; inp.classList.add('invalid'); warn.classList.add('show');
-      warn.innerHTML='⚠ '+r.msg+(r.fix?`<b data-fix="${k}" data-val="${r.fix}">${r.fix}</b> (클릭 시 적용)`:''); }
-  }
-  const dl=document.getElementById('download'), bm=document.getElementById('blockmsg');
-  if(!state.img){ dl.disabled=true; bm.style.color='var(--muted)'; bm.textContent='사진을 먼저 올려주세요.'; }
-  else if(anyEmpty){ dl.disabled=true; bm.style.color='var(--muted)'; bm.textContent='타이틀·제품명을 채워주세요.'; }
-  else if(!allOk){ dl.disabled=true; bm.style.color='var(--danger)'; bm.textContent='표기를 확인해 주세요.'; }
-  else { dl.disabled=false; bm.textContent=''; }
-  return allOk;
-}
-document.querySelectorAll('.warn').forEach(w=>w.addEventListener('click',e=>{ const b=e.target.closest('b[data-fix]'); if(b) setField(b.dataset.fix,b.dataset.val); }));
-function setField(k,v){ state.text[k]=v; document.getElementById('t_'+k).value=v; render(); runValidation(); }
+function composeTitle(){ state.text.title = (state.work.trim() + ' ' + state.line.trim()).trim().replace(/\s+/g,' '); }
+function updatePreview(){ document.getElementById('titlePreview').textContent = '타이틀: ' + (state.text.title || '—'); }
 
 /* ── 렌더 ── */
 function roundRect(c,x,y,w,h,r){ c.beginPath(); c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r); c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath(); }
@@ -185,7 +199,7 @@ function render(){
   if(state.img){ ctx.save(); ctx.globalAlpha=state.bg.opacity; ctx.filter=state.bg.blur?`blur(${state.bg.blur}px)`:'none';
     const b=coverRect(state.img.width,state.img.height,W+160,H+160,1,0,0);
     ctx.drawImage(state.img,(W-b.dw)/2,(H-b.dh)/2,b.dw,b.dh); ctx.restore(); }
-  let g=ctx.createLinearGradient(0,0,0,330); g.addColorStop(0,'rgba(12,10,8,.75)'); g.addColorStop(1,'rgba(12,10,8,0)'); ctx.fillStyle=g; ctx.fillRect(0,0,W,330);
+  let g=ctx.createLinearGradient(0,0,0,320); g.addColorStop(0,'rgba(12,10,8,.75)'); g.addColorStop(1,'rgba(12,10,8,0)'); ctx.fillStyle=g; ctx.fillRect(0,0,W,320);
   g=ctx.createLinearGradient(0,995,0,H); g.addColorStop(0,'rgba(12,10,8,0)'); g.addColorStop(1,'rgba(12,10,8,.9)'); ctx.fillStyle=g; ctx.fillRect(0,995,W,H-995);
 
   if(state.img){
@@ -197,11 +211,10 @@ function render(){
   }
 
   ctx.textAlign='center'; ctx.fillStyle='#fff'; ctx.shadowColor='rgba(0,0,0,.5)'; ctx.shadowBlur=12; ctx.shadowOffsetY=2;
-  fitText(state.text.headline,800,76,MAXW); ctx.fillText(state.text.headline,W/2,124);
+  fitText(state.text.headline,800,76,MAXW); ctx.fillText(state.text.headline,W/2,118);
   ctx.shadowBlur=8;
   fitText(state.text.title,700,state.size.title,MAXW); ctx.fillText(state.text.title,W/2,1052);
 
-  // 제품명: 여러 줄 + 선택적 불렛
   ctx.fillStyle='#efe8e2';
   const plines = state.text.product.split('\n').map(s=>s.trim()).filter(Boolean);
   const lh = state.size.product*1.12, base = 1120;
@@ -212,7 +225,29 @@ function render(){
   ctx.fillStyle='#e8e1db'; setFont(500,34); ctx.fillText(state.text.footer,W/2,1302);
 }
 
-/* ── 이미지 입력: 파일 / 드롭 / 붙여넣기 ── */
+function runValidation(){
+  const dl=document.getElementById('download'), bm=document.getElementById('blockmsg');
+  const ok = !!state.work.trim() && !!state.text.product.trim();
+  if(!state.img){ dl.disabled=true; bm.textContent='사진을 먼저 올려주세요.'; }
+  else if(!ok){ dl.disabled=true; bm.textContent='작품명과 제품명을 채워주세요.'; }
+  else { dl.disabled=false; bm.textContent=''; }
+  return ok;
+}
+
+/* ── 원고(캡션) 자동 생성 ── */
+function buildCopy(){
+  const h=state.text.headline;
+  const title=state.text.title || state.work.trim();
+  let prodLines=state.text.product.split('\n').map(s=>s.trim()).filter(Boolean);
+  if(h==='한정 재판매 결정') prodLines=prodLines.map(l=>l+' 【한정 재판매판】');
+  const prod=prodLines.join('\n');
+  const tags=[ state.jp.trim()?('#'+state.jp.trim().replace(/\s+/g,'')):null,
+               state.work.trim()?('#'+state.work.trim().replace(/\s+/g,'')):null,
+               '#메가하우스공식스토어' ].filter(Boolean).join(' ');
+  return `📢[${h}] ${title}\n\n${prod}\n\n※ 예약 오픈 시 별도 공지\n※ 일본 현지 기준 소식으로, 국내외 사정에 따라 일부 사항이 변동될 수 있습니다.\n\n${tags}`;
+}
+
+/* ── 이미지 입력 ── */
 function loadImage(src){ return new Promise(res=>{ const im=new Image(); im.onload=()=>{ state.img=im; state.fg={zoom:1,panX:0,panY:0}; render(); runValidation(); res(im); }; im.src=src; }); }
 window.__loadImage = loadImage;
 document.getElementById('file').addEventListener('change', async e=>{ const f=e.target.files[0]; if(f) await loadImage(URL.createObjectURL(f)); });
@@ -220,9 +255,13 @@ document.getElementById('file').addEventListener('change', async e=>{ const f=e.
 document.addEventListener('drop', async e=>{ const f=[...(e.dataTransfer?.files||[])].find(x=>x.type.startsWith('image/')); if(f) await loadImage(URL.createObjectURL(f)); });
 document.addEventListener('paste', async e=>{ const it=[...(e.clipboardData?.items||[])].find(i=>i.type.startsWith('image/')); if(it){ const f=it.getAsFile(); if(f) await loadImage(URL.createObjectURL(f)); } });
 
-/* ── 텍스트/컨트롤 ── */
-for(const k of ['headline','title','product','footer'])
-  document.getElementById('t_'+k).addEventListener('input', e=>{ state.text[k]=e.target.value; render(); runValidation(); });
+/* ── 입력 연결 ── */
+document.getElementById('t_headline').addEventListener('change', e=>{ state.text.headline=e.target.value; render(); });
+document.getElementById('t_work').addEventListener('input', e=>{ state.work=e.target.value; composeTitle(); updatePreview(); render(); runValidation(); });
+document.getElementById('t_line').addEventListener('change', e=>{ state.line=e.target.value; composeTitle(); updatePreview(); render(); });
+document.getElementById('t_product').addEventListener('input', e=>{ state.text.product=e.target.value; render(); runValidation(); });
+document.getElementById('t_footer').addEventListener('input', e=>{ state.text.footer=e.target.value; render(); });
+document.getElementById('t_jp').addEventListener('input', e=>{ state.jp=e.target.value; });
 document.getElementById('c_bullet').addEventListener('change', e=>{ state.bullet=e.target.checked; render(); });
 
 const z=document.getElementById('s_zoom'),op=document.getElementById('s_op'),bl=document.getElementById('s_blur');
@@ -231,9 +270,12 @@ op.addEventListener('input',()=>{ state.bg.opacity=op.value/100; v_op.textConten
 bl.addEventListener('input',()=>{ state.bg.blur=+bl.value; v_blur.textContent=bl.value; render(); });
 document.querySelectorAll('.stepper button').forEach(b=>b.addEventListener('click',()=>{ const k=b.dataset.k,d=+b.dataset.d; state.size[k]=Math.max(28,Math.min(160,state.size[k]+d)); document.getElementById('v_'+k+'Size').textContent=state.size[k]; render(); }));
 
+document.getElementById('genCopy').addEventListener('click', ()=>{ document.getElementById('t_copy').value=buildCopy(); });
+document.getElementById('doCopy').addEventListener('click', async ()=>{ const t=document.getElementById('t_copy'); try{ await navigator.clipboard.writeText(t.value); }catch{ t.select(); document.execCommand('copy'); } const b=document.getElementById('doCopy'); const o=b.textContent; b.textContent='복사됨!'; setTimeout(()=>b.textContent=o,1200); });
+
 document.getElementById('download').addEventListener('click',()=>{ if(!runValidation()) return; cv.toBlob(b=>{ const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='insta-card.png'; a.click(); },'image/png'); });
 
-(async ()=>{ try{ await document.fonts.load('800 76px Pretendard'); await document.fonts.load('300 60px Pretendard'); }catch{} render(); runValidation(); })();
+(async ()=>{ try{ await document.fonts.load('800 76px Pretendard'); await document.fonts.load('300 60px Pretendard'); }catch{} composeTitle(); updatePreview(); render(); runValidation(); })();
 </script>
 </body>
 </html>
