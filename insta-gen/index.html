@@ -247,13 +247,25 @@ const DICT = {
     '銀魂':'은혼', '進撃の巨人':'진격의 거인', 'カグラバチ':'카구라바치', '呪術廻戦':'주술회전',
     'ナルト':'나루토 질풍전', 'NARUTO':'나루토 질풍전', '疾風伝':'나루토 질풍전',
   },
+  // 한자 이름 위주(음역 불가). 가타카나 이름은 아래 음역기로 자동 처리되므로 최소만.
   chars: {
-    '神樂':'카구라','神楽':'카구라','神威':'카무이','カムイ':'카무이',
+    // 은혼
+    '坂田銀時':'사카타 긴토키','銀時':'긴토키','志村新八':'시무라 신파치','神樂':'카구라','神楽':'카구라',
+    '神威':'카무이','カムイ':'카무이','高杉晋助':'타카스기 신스케','土方十四郎':'히지카타 토시로',
+    '沖田総悟':'오키타 소고','桂小太郎':'카츠라 코타로',
+    // 진격의 거인 (대부분 가타카나→음역, 사전엔 정식 표기 일부)
     'エレン・イェーガー':'에렌 예거','エレン':'에렌 예거','リヴァイ':'리바이 병장',
-    'アルミン・アルレルト':'아르민 아를레르트','アルミン':'아르민 아를레르트',
-    '五条悟':'고죠 사토루','伏黒恵':'후시구로 메구미',
+    'アルミン・アルレルト':'아르민 아를레르트','アルミン':'아르민 아를레르트','ミカサ':'미카사','エルヴィン':'에르빈',
+    // 주술회전
+    '五条悟':'고죠 사토루','虎杖悠仁':'이타도리 유지','伏黒恵':'후시구로 메구미','釘崎野薔薇':'쿠기사키 노바라',
+    '両面宿儺':'료멘 스쿠나','禪院真希':'젠인 마키','禅院真希':'젠인 마키','七海建人':'나나미 켄토',
+    '乙骨憂太':'옷코츠 유타','夏油傑':'게토 스구루','狗巻棘':'이누마키 토게',
+    // 나루토 질풍전
+    'うずまきナルト':'우즈마키 나루토','うちはサスケ':'우치하 사스케','春野サクラ':'하루노 사쿠라',
+    'はたけカカシ':'하타케 카카시','うちはイタチ':'우치하 이타치','波風ミナト':'나미카제 미나토',
+    '我愛羅':'가아라','自来也':'지라이야','綱手':'츠나데','大蛇丸':'오로치마루','日向ヒナタ':'휴가 히나타',
+    // 카구라바치
     '六平千鉱':'로쿠히라 치히로','漣伯理':'사자나미 하쿠리',
-    'うちはイタチ':'우치하 이타치','うちはサスケ':'우치하 사스케','波風ミナト':'나미카제 미나토',
   },
   versions: { 'むむっと':'(뾰로통 Ver.)','未彩色':'(미채색)','幼少':'(유년 Ver.)' },
 };
@@ -275,21 +287,37 @@ const LINES = [
 ];
 const z2h = s => s.replace(/[０-９]/g, d => '０１２３４５６７８９'.indexOf(d) + '');
 
-function pickChars(txt){
-  const keys = Object.keys(DICT.chars).sort((a,b)=>b.length-a.length);
-  const used = new Array(txt.length).fill(false); const found=[];
-  for(const k of keys){ let i=txt.indexOf(k);
-    while(i!==-1){ let free=true; for(let j=i;j<i+k.length;j++) if(used[j]){free=false;break;}
-      if(free){ for(let j=i;j<i+k.length;j++) used[j]=true;
-        // 버전은 같은 줄(다음 줄바꿈 전)에서만 탐색 → 옆 캐릭터 버전 오염 방지
-        const le=txt.indexOf('\n', i+k.length); const after=txt.slice(i+k.length, le===-1?txt.length:le);
-        let ver=''; for(const vk of Object.keys(DICT.versions)) if(after.includes(vk)){ ver=' '+DICT.versions[vk]; break; }
-        found.push({i, base:DICT.chars[k], kr: DICT.chars[k]+ver}); }
-      i=txt.indexOf(k, i+1); } }
-  found.sort((a,b)=>a.i-b.i);
-  const seen=new Set(), out=[]; for(const f of found){ if(!seen.has(f.base)){ seen.add(f.base); out.push(f.kr); } }
-  return out;
+/* ── 가타카나/히라가나 → 한글 음역 (사전에 없는 이름의 폴백) ── */
+const Ts=['','ㄱ','ㄲ','ㄳ','ㄴ','ㄵ','ㄶ','ㄷ','ㄹ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ','ㅁ','ㅂ','ㅄ','ㅅ','ㅆ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+function addBatchim(syll, jamo){ const c=syll.charCodeAt(0)-0xAC00; if(c<0||c>11171) return syll; const ini=Math.floor(c/588),med=Math.floor((c%588)/28),fin=c%28; if(fin!==0) return syll; const ti=Ts.indexOf(jamo); if(ti<1) return syll; return String.fromCharCode(0xAC00+(ini*21+med)*28+ti); }
+const KMAP={ア:'아',イ:'이',ウ:'우',エ:'에',オ:'오',カ:'카',キ:'키',ク:'쿠',ケ:'케',コ:'코',ガ:'가',ギ:'기',グ:'구',ゲ:'게',ゴ:'고',サ:'사',シ:'시',ス:'스',セ:'세',ソ:'소',ザ:'자',ジ:'지',ズ:'즈',ゼ:'제',ゾ:'조',タ:'타',チ:'치',ツ:'츠',テ:'테',ト:'토',ダ:'다',ヂ:'지',ヅ:'즈',デ:'데',ド:'도',ナ:'나',ニ:'니',ヌ:'누',ネ:'네',ノ:'노',ハ:'하',ヒ:'히',フ:'후',ヘ:'헤',ホ:'호',バ:'바',ビ:'비',ブ:'부',ベ:'베',ボ:'보',パ:'파',ピ:'피',プ:'푸',ペ:'페',ポ:'포',マ:'마',ミ:'미',ム:'무',メ:'메',モ:'모',ヤ:'야',ユ:'유',ヨ:'요',ラ:'라',リ:'리',ル:'루',レ:'레',ロ:'로',ワ:'와',ヲ:'오',ヴ:'부'};
+const COMBO={'キャ':'캬','キュ':'큐','キョ':'쿄','ギャ':'갸','ギュ':'규','ギョ':'교','シャ':'샤','シュ':'슈','ショ':'쇼','シェ':'셰','ジャ':'자','ジュ':'주','ジョ':'조','ジェ':'제','チャ':'차','チュ':'추','チョ':'초','チェ':'체','ニャ':'냐','ニュ':'뉴','ニョ':'뇨','ヒャ':'햐','ヒュ':'휴','ヒョ':'효','ビャ':'뱌','ビュ':'뷰','ビョ':'뵤','ピャ':'퍄','ピュ':'퓨','ピョ':'표','ミャ':'먀','ミュ':'뮤','ミョ':'묘','リャ':'랴','リュ':'류','リョ':'료','ティ':'티','ディ':'디','トゥ':'투','ドゥ':'두','ファ':'파','フィ':'피','フェ':'페','フォ':'포','ウィ':'위','ウェ':'웨','ウォ':'워','ヴァ':'바','ヴィ':'비','ヴェ':'베','ヴォ':'보','イェ':'예'};
+function kanaToHangul(s){
+  s=s.replace(/[ぁ-ゖ]/g,c=>String.fromCharCode(c.charCodeAt(0)+0x60)); // 히라가나→가타카나
+  let out='', i=0, ok=true;
+  while(i<s.length){ const c=s[i], c2=s.slice(i,i+2);
+    if(c==='ー'){ i++; continue; }
+    if(c==='・'||c==='＝'||c==='='){ out+=' '; i++; continue; }
+    if(/\s/.test(c)){ out+=' '; i++; continue; }
+    if(c==='ッ'){ if(out) out=out.slice(0,-1)+addBatchim(out.slice(-1),'ㅅ'); i++; continue; }
+    if(c==='ン'){ if(out) out=out.slice(0,-1)+addBatchim(out.slice(-1),'ㄴ'); else out+='ㄴ'; i++; continue; }
+    if(COMBO[c2]){ out+=COMBO[c2]; i+=2; continue; }
+    if(KMAP[c]){ out+=KMAP[c]; i++; continue; }
+    ok=false; i++; // 한자 등 변환 불가
+  }
+  return { ok: ok && out.trim().length>0, text: out.replace(/\s+/g,' ').trim() };
 }
+
+// 한 줄 → 캐릭터(한글) + 버전. 사전 우선, 없으면 음역.
+function convChar(line){
+  let ver=''; for(const vk of Object.keys(DICT.versions)) if(line.includes(vk)){ ver=' '+DICT.versions[vk]; break; }
+  const namePart = line.split(/\s*(?:むむっと|未彩色|幼少|ver\.?|Ver\.?|【|（|\()/)[0].trim();
+  for(const k of Object.keys(DICT.chars).sort((a,b)=>b.length-a.length)) if(namePart.includes(k)) return {ok:true, base:DICT.chars[k], kr:DICT.chars[k]+ver};
+  const tr=kanaToHangul(namePart);
+  if(tr.ok) return {ok:true, base:tr.text, kr:tr.text+ver, approx:true, raw:namePart};
+  return {ok:false, raw:namePart};
+}
+
 function parseJP(txt){
   const r={};
   for(const h of HEADS) if(h.kw.some(k=>txt.includes(k))){ r.headline=h.kr; break; }
@@ -297,9 +325,37 @@ function parseJP(txt){
   const dm = txt.match(/予約開始[^0-9０-９]*([0-9０-９]{1,2})\s*月\s*([0-9０-９]{1,2})\s*日/)
           || txt.match(/예약[^0-9]*([0-9]{1,2})\s*월\s*([0-9]{1,2})\s*일/);
   if(dm) r.date = z2h(dm[1])+'월 '+z2h(dm[2])+'일';
+  // 작품: 해시태그(【#…】 / #…) 우선 → 사전 → 음역
+  let workJP=null; const hm = txt.match(/【\s*#?\s*([^】#][^】]*?)\s*】/) || txt.match(/(?:^|\n)\s*#\s*([^\s#\n】]+)/);
+  if(hm) workJP=hm[1].trim();
   let bw=null; for(const jp of Object.keys(DICT.works)) if(txt.includes(jp)&&(!bw||jp.length>bw.length)) bw=jp;
-  if(bw){ r.work=DICT.works[bw]; r.jp=bw; }
-  const c=pickChars(txt); if(c.length) r.product=c.join('\n');
+  r.jp = workJP || bw || null;
+  if(bw) r.work=DICT.works[bw];
+  else if(workJP && DICT.works[workJP]) r.work=DICT.works[workJP];
+  else if(workJP){ const tw=kanaToHangul(workJP); if(tw.ok){ r.work=tw.text; r.workApprox=true; } }
+
+  // 캐릭터 줄 구조적 추출
+  const STRIP='\\s\\u3000|｜◇◤◢━╋◥◣＊*◆■□●○◯\\-–—=～~';
+  const DECO=new RegExp('['+STRIP+']','g');
+  const lines = txt.split('\n').map(s=>s.replace(/[　\s]+/g,' ').trim())
+    .map(s=>s.replace(new RegExp('^['+STRIP+']+|['+STRIP+']+$','g'),'').trim()).filter(Boolean);
+  const isDeco=s=>!s.replace(DECO,'').length;
+  const isTag=s=>/^[【#]/.test(s)||(/^G\.?E\.?M\./.test(s)&&!DICT.works[s]);
+  const isBody=s=>/[、。「」（）]/.test(s)||/(より|登場|です|ます|サウンド|シリーズに|♪|✨|メガ|発売中|お知らせ|仕様|楽しめる|즐길|패턴|기대)/.test(s)||s.length>=20;
+  const isDate=s=>/予約|⏰|発売日|예약/.test(s)||/[0-9０-９]{1,2}\s*月\s*[0-9０-９]{1,2}\s*日/.test(s);
+  const isHead=s=>HEADS.some(h=>h.kw.some(k=>s.includes(k)));
+  const isLineInd=s=>LINES.some(l=>l.kw.some(k=>s.includes(k)));
+  const isWork=s=> r.jp && (s===r.jp || s.includes(r.jp));
+  const prod=[], approx=[], warnRaw=[], seen=new Set();
+  for(const s of lines){
+    if(isDeco(s)||isTag(s)||isBody(s)||isDate(s)||isHead(s)||isLineInd(s)||isWork(s)) continue;
+    const cc=convChar(s);
+    if(cc.ok){ if(!seen.has(cc.base)){ seen.add(cc.base); prod.push(cc.kr); if(cc.approx) approx.push(cc.raw+'→'+cc.base); } }
+    else if(cc.raw) warnRaw.push(cc.raw);
+  }
+  if(prod.length) r.product=prod.join('\n');
+  if(r.workApprox && workJP) approx.unshift(workJP+'→'+r.work);
+  r.approx=approx; r.warnRaw=warnRaw;
   return r;
 }
 
@@ -310,19 +366,23 @@ function applySource(){
   let head=grab(/^\s*헤드라인\s*[:：]\s*(.+)$/m), work=grab(/^\s*작품(?:명)?\s*[:：]\s*(.+)$/m),
       line=grab(/^\s*(?:라인|시리즈)\s*[:：]\s*(.+)$/m), prod=grab(/^\s*제품명\s*[:：]\s*(.+)$/m),
       jp=grab(/^\s*일본어\s*[:：]\s*(.+)$/m), date=grab(/^\s*(?:예약판매일|예약일)\s*[:：]\s*(.+)$/m);
-  if(!(head||work||line||prod)){ const r=parseJP(txt); head=r.headline; work=r.work; line=r.line; prod=r.product; jp=r.jp; date=r.date; }
-  const warn=[];
-  if(head){ if(!setSelect('t_headline',head)) warn.push('헤드라인'); else state.text.headline=head; } else warn.push('헤드라인');
-  if(work){ document.getElementById('t_work').value=work; state.work=work; } else warn.push('작품');
-  if(line){ if(!setSelect('t_line',line)) warn.push('라인('+line+')'); else state.line=line; } else warn.push('라인');
-  if(prod){ const v=prod.split(/\s*[\/\n]\s*/).filter(Boolean).join('\n'); document.getElementById('t_product').value=v; state.text.product=v; } else warn.push('제품명(캐릭터)');
+  let approx=[], warnRaw=[];
+  if(!(head||work||line||prod)){ const r=parseJP(txt); head=r.headline; work=r.work; line=r.line; prod=r.product; jp=r.jp; date=r.date; approx=r.approx||[]; warnRaw=r.warnRaw||[]; }
+  const miss=[];
+  if(head){ if(!setSelect('t_headline',head)) miss.push('헤드라인'); else state.text.headline=head; } else miss.push('헤드라인');
+  if(work){ document.getElementById('t_work').value=work; state.work=work; } else miss.push('작품');
+  if(line){ if(!setSelect('t_line',line)) miss.push('라인('+line+')'); else state.line=line; } else miss.push('라인');
+  if(prod){ const v=prod.split(/\s*[\/\n]\s*/).filter(Boolean).join('\n'); document.getElementById('t_product').value=v; state.text.product=v; } else miss.push('제품명(캐릭터)');
   if(jp){ document.getElementById('t_jp').value=jp; state.jp=jp; }
   if(date){ document.getElementById('t_saledate').value=date; state.saleDate=date; }
   composeTitle(); updatePreview(); render(); runValidation();
   const el=document.getElementById('srcStatus');
-  if(!head&&!work&&!line&&!prod){ el.textContent='⚠ 인식 실패 — 일본어 원문을 그대로 붙여넣어 보세요. 그래도 안 되면 3번 칸에 직접 입력하세요.'; el.style.color='var(--danger)'; }
-  else if(warn.length){ el.textContent='✓ 일부 자동완성 · 사전에 없어 못 채운 항목: '+warn.join(', ')+' → 3번에서 직접 입력'; el.style.color='#b8860b'; }
-  else { el.textContent='✓ 전부 자동완성 완료 — 3번에서 확인만 하세요.'; el.style.color='#2e7d52'; }
+  if(!head&&!work&&!line&&!prod){ el.textContent='⚠ 인식 실패 — 일본어 원문을 그대로 붙여넣어 보세요. 그래도 안 되면 3번 칸에 직접 입력하세요.'; el.style.color='var(--danger)'; return; }
+  let msg='✓ 자동완성 완료 — 3번에서 확인하세요.', col='#2e7d52';
+  if(warnRaw.length){ msg='✓ 일부 자동완성 · 사전에 없어 못 채운 이름: '+warnRaw.join(', ')+' → 3번에서 직접 입력'; col='#b8860b'; }
+  else if(miss.length){ msg='✓ 일부 자동완성 · 못 채운 항목: '+miss.join(', ')+' → 3번에서 직접 입력'; col='#b8860b'; }
+  if(approx.length){ msg+=' · ⚠음역(추정): '+approx.join(', ')+' (확인 필요)'; col='#b8860b'; }
+  el.textContent=msg; el.style.color=col;
 }
 
 /* ── 원고(캡션) 자동 생성 ── */
