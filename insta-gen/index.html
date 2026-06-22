@@ -81,22 +81,22 @@
         <label>타이틀 (작품 + 시리즈)</label>
         <input type="text" id="t_title" placeholder="예: 주술회전 룩업">
         <div class="warn" id="w_title"></div>
+        <div class="stepper"><label>↑ 글자 크기</label><div class="ctrl"><button data-k="title" data-d="-4">−</button><span class="num" id="v_titleSize">80</span><button data-k="title" data-d="4">+</button></div></div>
       </div>
       <div class="field">
         <label>제품명 (두 줄은 Enter로 줄바꿈)</label>
         <textarea id="t_product" rows="2" placeholder="예: 고죠 사토루&#10;후시구로 메구미"></textarea>
         <label class="check"><input type="checkbox" id="c_bullet"> 제품명 앞에 불렛(•) 표시</label>
+        <div class="stepper"><label>↑ 글자 크기</label><div class="ctrl"><button data-k="product" data-d="-4">−</button><span class="num" id="v_productSize">60</span><button data-k="product" data-d="4">+</button></div></div>
       </div>
       <div class="field"><label>푸터</label><input type="text" id="t_footer" value="메가하우스 공식 스토어"></div>
     </div>
 
     <div class="card">
-      <h2>3 · 사진 크롭 / 배경지 / 글자 크기</h2>
+      <h2>3 · 사진 크롭 / 배경지</h2>
       <div class="slider"><label>사진 확대</label><input type="range" id="s_zoom" min="100" max="300" value="100"><span class="val" id="v_zoom">1.0×</span></div>
       <div class="slider"><label>배경 불투명</label><input type="range" id="s_op" min="20" max="100" value="50"><span class="val" id="v_op">50%</span></div>
       <div class="slider"><label>배경 흐림</label><input type="range" id="s_blur" min="0" max="70" value="45"><span class="val" id="v_blur">45</span></div>
-      <div class="stepper"><label>타이틀 크기</label><div class="ctrl"><button data-k="title" data-d="-4">−</button><span class="num" id="v_titleSize">80</span><button data-k="title" data-d="4">+</button></div></div>
-      <div class="stepper"><label>제품명 크기</label><div class="ctrl"><button data-k="product" data-d="-4">−</button><span class="num" id="v_productSize">60</span><button data-k="product" data-d="4">+</button></div></div>
     </div>
 
     <div>
@@ -108,7 +108,7 @@
 <script>
 const cv = document.getElementById('stage'), ctx = cv.getContext('2d');
 const W = 1080, H = 1350;
-const FRAME = { x: 110, y: 215, w: 860, h: 760, r: 36 }; // 이미지 박스를 35px 위로 (크기 유지)
+const FRAME = { x: 110, y: 205, w: 860, h: 760, r: 36 }; // 이미지 박스 위치 (크기 유지)
 const MAXW = 920;
 
 const state = {
@@ -190,7 +190,7 @@ function render(){
   }
 
   ctx.textAlign='center'; ctx.fillStyle='#fff'; ctx.shadowColor='rgba(0,0,0,.5)'; ctx.shadowBlur=12; ctx.shadowOffsetY=2;
-  fitText(state.text.headline,800,76,MAXW); ctx.fillText(state.text.headline,W/2,148);
+  fitText(state.text.headline,800,76,MAXW); ctx.fillText(state.text.headline,W/2,124);
   ctx.shadowBlur=8;
   fitText(state.text.title,700,state.size.title,MAXW); ctx.fillText(state.text.title,W/2,1052);
 
