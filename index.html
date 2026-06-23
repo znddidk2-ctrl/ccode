@@ -343,7 +343,6 @@ function renderGrid(pg) {
     gridEl.appendChild(row);
   });
   requestAnimationFrame(() => { applyRowFontSizes(pg); applyRowHeights(pg); });
-  renderRowControls();
 }
 
 function makeCell(it, ri, pg) {
@@ -742,6 +741,7 @@ function refresh() {
   renderItemList();
   renderGrid(1);
   renderGrid(2);
+  renderRowControls();
   // 2페이지 있으면 보여주기
   $('#wrap2').style.display = pages[1].length ? 'flex' : 'none';
   requestAnimationFrame(fitScale);
