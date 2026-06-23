@@ -269,7 +269,7 @@ function kanaToHangul(s){
   let out='', i=0, ok=true;
   while(i<s.length){ const c=s[i], c2=s.slice(i,i+2);
     if(c==='ー'){ i++; continue; }
-    if(c==='・'||c==='＝'||c==='='){ out+=' '; i++; continue; }
+    if('・＝=／/、,&＆･'.includes(c)){ out+=' '; i++; continue; }
     if(/\s/.test(c)){ out+=' '; i++; continue; }
     if(c==='ッ'){ if(out) out=out.slice(0,-1)+addBatchim(out.slice(-1),'ㅅ'); i++; continue; }
     if(c==='ン'){ if(out) out=out.slice(0,-1)+addBatchim(out.slice(-1),'ㄴ'); else out+='ㄴ'; i++; continue; }
@@ -295,39 +295,56 @@ function convChar(line){
 
 function parseJP(txt){
   const r={};
-  for(const h of HEADS) if(h.kw.some(k=>txt.includes(k))){ r.headline=h.kr; break; }
-  for(const l of LINES) if(l.kw.some(k=>txt.includes(k))){ r.line=l.kr; break; }
+  const inc=(h,n)=>h.toLowerCase().includes(n.toLowerCase());   // 대소문자 무시 (gem→GEM)
+  for(const h of HEADS) if(h.kw.some(k=>inc(txt,k))){ r.headline=h.kr; break; }
+  for(const l of LINES) if(l.kw.some(k=>inc(txt,k))){ r.line=l.kr; break; }
   const dm = txt.match(/予約開始[^0-9０-９]*([0-9０-９]{1,2})\s*月\s*([0-9０-９]{1,2})\s*日/) || txt.match(/예약[^0-9]*([0-9]{1,2})\s*월\s*([0-9]{1,2})\s*일/);
   if(dm) r.date=z2h(dm[1])+'월 '+z2h(dm[2])+'일';
   let dow='목'; const wk=txt.match(/[日일]\s*[（(]\s*([月火水木金土日월화수목금토일])\s*[）)]/);
   if(wk) dow=({月:'월',火:'화',水:'수',木:'목',金:'금',土:'토',日:'일'})[wk[1]]||wk[1];
   r.dow=dow;
-  // 작품: 해시태그(【…】 / #…) 우선. 한국어면 그대로 사용, 일본어면 사전/음역.
+  // 작품: 해시태그(【…】 / #…) 우선 → 일본어 사전 → 한국어 작품목록 → 음역
   let workJP=null; const hm = txt.match(/【\s*#?\s*([^】#][^】]*?)\s*】/) || txt.match(/(?:^|\n)\s*#\s*([^\s#\n】]+)/);
   if(hm) workJP=hm[1].trim();
-  let bw=null; for(const jp of Object.keys(DICT.works)) if(txt.includes(jp)&&(!bw||jp.length>bw.length)) bw=jp;
-  r.workRaw = workJP || bw || null;   // 캐릭터 줄 제외용 (원문 표기 그대로)
-  if(workJP && /[가-힣]/.test(workJP)){ r.work=workJP; r.jp=''; }
-  else if(bw){ r.work=DICT.works[bw]; r.jp=bw; }
-  else if(workJP && DICT.works[workJP]){ r.work=DICT.works[workJP]; r.jp=workJP; }
-  else if(workJP){ const tw=kanaToHangul(workJP); if(tw.ok){ r.work=tw.text; r.workApprox=true; } r.jp=workJP; }
+  let bw=null; for(const jp of Object.keys(DICT.works)) if(inc(txt,jp)&&(!bw||jp.length>bw.length)) bw=jp;
+  let kw2=null; for(const w of KR_WORKS) if(txt.includes(w)&&(!kw2||w.length>kw2.length)) kw2=w;
+  let kwAlias=null, kwAliasRaw=null;   // 약칭(히트맨 리본 등) → 정식명
+  if(typeof KR_ALIAS!=='undefined') for(const a of Object.keys(KR_ALIAS)) if(txt.includes(a)&&(!kwAliasRaw||a.length>kwAliasRaw.length)){ kwAliasRaw=a; kwAlias=KR_ALIAS[a]; }
+  if(workJP && /[가-힣]/.test(workJP)){ r.work=workJP; r.jp=''; r.workRaw=workJP; }
+  else if(bw){ r.work=DICT.works[bw]; r.jp=bw; r.workRaw=bw; }
+  else if(kw2){ r.work=kw2; r.jp=''; r.workRaw=kw2; }     // 한국어 자유입력 작품(정식명)
+  else if(kwAlias){ r.work=kwAlias; r.jp=''; r.workRaw=kwAliasRaw; }   // 약칭 → 정식명 (줄에선 약칭을 지움)
+  else if(workJP && DICT.works[workJP]){ r.work=DICT.works[workJP]; r.jp=workJP; r.workRaw=workJP; }
+  else if(workJP){ const tw=kanaToHangul(workJP); if(tw.ok){ r.work=tw.text; r.workApprox=true; } r.jp=workJP; r.workRaw=workJP; }
 
-  // 캐릭터 줄 구조적 추출
+  // 캐릭터 줄 구조적 추출: 작품/라인/헤드라인/문맥 키워드를 줄에서 지우고 → 구분자로 분리
   const STRIP='\\s\\u3000|｜◇◤◢━╋◥◣＊*◆■□●○◯\\-–—=～~';
   const DECO=new RegExp('['+STRIP+']','g');
+  const esc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  const CTX=['初公開','公開','決定','受付','開始','新作','登場','シリーズ','プロジェクト',
+             '최초공개','공개','결정','시작','신작','등장','시리즈','프로젝트'];
+  const STRIPKW=[]; if(r.workRaw) STRIPKW.push(r.workRaw);
+  for(const l of LINES) for(const k of l.kw) STRIPKW.push(k);
+  for(const h of HEADS) for(const k of h.kw) STRIPKW.push(k);
+  for(const k of CTX) STRIPKW.push(k);
+  STRIPKW.sort((a,b)=>b.length-a.length);
+  const stripKW=s=>{ let o=s; for(const k of STRIPKW){ if(inc(o,k)) o=o.replace(new RegExp(esc(k),'gi'),' '); } return o.replace(/\s+/g,' ').trim(); };
+  const nameLike=s=>/[ぁ-んァ-ヶ㐀-鿿가-힣A-Za-z]/.test(s);
   const lines = txt.split('\n').map(s=>s.replace(/[　\s]+/g,' ').trim())
     .map(s=>s.replace(new RegExp('^['+STRIP+']+|['+STRIP+']+$','g'),'').trim()).filter(Boolean);
-  const isDeco=s=>!s.replace(DECO,'').length || !/[ぁ-んァ-ヶ㐀-鿿가-힣A-Za-z0-9]/.test(s);
+  const isDeco=s=>!s.replace(DECO,'').length || !nameLike(s);
   const isTag=s=>/^[【#]/.test(s)||(/^G\.?E\.?M\./.test(s)&&!DICT.works[s]);
   const isBody=s=>/[、。「」（）]/.test(s)||/(より|登場|です|ます|サウンド|シリーズに|♪|✨|メガ|発売中|お知らせ|仕様|楽しめる|등장|메가|피규어|가공|푹신|즐길|패턴|기대|받아보|입니다|습니다|합니다|됩니다|예정|소식|등장✨)/.test(s)||s.length>=20;
   const isDate=s=>/予約|⏰|発売日|예약/.test(s)||/[0-9０-９]{1,2}\s*[月월]\s*[0-9０-９]{1,2}\s*[日일]/.test(s);
-  const isHead=s=>HEADS.some(h=>h.kw.some(k=>s.includes(k)));
-  const isLineInd=s=>LINES.some(l=>l.kw.some(k=>s.includes(k)));
-  const isWork=s=> r.workRaw && (s===r.workRaw || s.includes(r.workRaw));
   const charLines=[], seen=new Set();
   for(const s of lines){
-    if(isDeco(s)||isTag(s)||isBody(s)||isDate(s)||isHead(s)||isLineInd(s)||isWork(s)) continue;
-    const cc=convChar(s); const key=cc.base||cc.raw; if(!key||seen.has(key)) continue; seen.add(key); charLines.push(cc);
+    if(isDeco(s)||isTag(s)||isBody(s)||isDate(s)) continue;
+    const stripped=stripKW(s);
+    if(!stripped||!nameLike(stripped)) continue;            // 작품/라인/헤드라인만 있던 줄 → 건너뜀
+    for(const piece of stripped.split(/[／/、,&＆･]/).map(x=>x.trim()).filter(Boolean)){
+      if(!nameLike(piece)) continue;
+      const cc=convChar(piece); const key=cc.base||cc.raw; if(!key||seen.has(key)) continue; seen.add(key); charLines.push(cc);
+    }
   }
   r.charLines=charLines;
   r.product = charLines.filter(c=>c.kr).map(c=>c.kr).join('\n');
