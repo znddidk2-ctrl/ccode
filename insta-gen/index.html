@@ -185,7 +185,7 @@ const state = {
   bg: { opacity: 0.50, blur: 45 },
   size: { title: 80, product: 60 },
   bullet: false,
-  work: '', line: 'G.E.M. 시리즈', jp: '', saleDate: '',
+  work: '', line: 'G.E.M. 시리즈', jp: '', saleDate: '', saleDow: '목',
   text: { headline:'원형 최초공개', title:'G.E.M. 시리즈', product:'', footer:'메가하우스 공식 스토어' },
 };
 
@@ -244,8 +244,15 @@ function runValidation(){
 // ── 일본어 원문 사전 (JP→KR). 모르는 건 그대로 두고 3번에서 수정 ──
 const DICT = {
   works: {
-    '銀魂':'은혼', '進撃の巨人':'진격의 거인', 'カグラバチ':'카구라바치', '呪術廻戦':'주술회전',
-    'ナルト':'나루토 질풍전', 'NARUTO':'나루토 질풍전', '疾風伝':'나루토 질풍전',
+    '銀魂':'은혼','進撃の巨人':'진격의 거인','カグラバチ':'카구라바치','呪術廻戦':'주술회전',
+    'ナルト':'나루토 질풍전','NARUTO':'나루토 질풍전','疾風伝':'나루토 질풍전',
+    '魔法少女まどか☆マギカ':'마법소녀 마도카☆마기카','まどか☆マギカ':'마법소녀 마도카☆마기카',
+    'ONE PIECE':'원피스','ワンピース':'원피스','鬼滅の刃':'귀멸의 칼날','チェンソーマン':'체인소맨',
+    'ハイキュー':'하이큐!!','ドラゴンボール':'드래곤볼','BLEACH':'블리치','ブリーチ':'블리치',
+    '名探偵コナン':'명탐정 코난','鋼の錬金術師':'강철의 연금술사','東京リベンジャーズ':'도쿄 리벤저스',
+    'SPY×FAMILY':'스파이 패밀리','スパイファミリー':'스파이 패밀리','僕のヒーローアカデミア':'나의 히어로 아카데미아',
+    '五等分の花嫁':'오등분의 신부','黒子のバスケ':'쿠로코의 농구','ジョジョの奇妙な冒険':'죠죠의 기묘한 모험',
+    'HUNTER×HUNTER':'헌터×헌터','暗殺教室':'암살교실','フェアリーテイル':'페어리테일',
   },
   // 한자 이름 위주(음역 불가). 가타카나 이름은 아래 음역기로 자동 처리되므로 최소만.
   chars: {
@@ -266,6 +273,9 @@ const DICT = {
     '我愛羅':'가아라','自来也':'지라이야','綱手':'츠나데','大蛇丸':'오로치마루','日向ヒナタ':'휴가 히나타',
     // 카구라바치
     '六平千鉱':'로쿠히라 치히로','漣伯理':'사자나미 하쿠리',
+    // 마법소녀 마도카☆마기카
+    '鹿目まどか':'카나메 마도카','暁美ほむら':'아케미 호무라','美樹さやか':'미키 사야카',
+    '巴マミ':'토모에 마미','佐倉杏子':'사쿠라 쿄코',
   },
   versions: { 'むむっと':'(뾰로통 Ver.)','未彩色':'(미채색)','幼少':'(유년 Ver.)' },
 };
@@ -323,9 +333,11 @@ function parseJP(txt){
   const r={};
   for(const h of HEADS) if(h.kw.some(k=>txt.includes(k))){ r.headline=h.kr; break; }
   for(const l of LINES) if(l.kw.some(k=>txt.includes(k))){ r.line=l.kr; break; }
-  const dm = txt.match(/予約開始[^0-9０-９]*([0-9０-９]{1,2})\s*月\s*([0-9０-９]{1,2})\s*日/)
-          || txt.match(/예약[^0-9]*([0-9]{1,2})\s*월\s*([0-9]{1,2})\s*일/);
-  if(dm) r.date = z2h(dm[1])+'월 '+z2h(dm[2])+'일';
+  let dm = txt.match(/予約開始[^0-9０-９]*([0-9０-９]{1,2})\s*月\s*([0-9０-９]{1,2})\s*日\s*[（(]\s*([月火水木金土日])\s*[）)]/);
+  let dow='목';
+  if(dm){ r.date=z2h(dm[1])+'월 '+z2h(dm[2])+'일'; dow=({月:'월',火:'화',水:'수',木:'목',金:'금',土:'토',日:'일'})[dm[3]]||'목'; }
+  else { dm = txt.match(/予約開始[^0-9０-９]*([0-9０-９]{1,2})\s*月\s*([0-9０-９]{1,2})\s*日/) || txt.match(/예약[^0-9]*([0-9]{1,2})\s*월\s*([0-9]{1,2})\s*일/); if(dm) r.date=z2h(dm[1])+'월 '+z2h(dm[2])+'일'; }
+  r.dow=dow;
   // 작품: 해시태그(【#…】 / #…) 우선 → 사전 → 음역
   let workJP=null; const hm = txt.match(/【\s*#?\s*([^】#][^】]*?)\s*】/) || txt.match(/(?:^|\n)\s*#\s*([^\s#\n】]+)/);
   if(hm) workJP=hm[1].trim();
@@ -340,7 +352,7 @@ function parseJP(txt){
   const DECO=new RegExp('['+STRIP+']','g');
   const lines = txt.split('\n').map(s=>s.replace(/[　\s]+/g,' ').trim())
     .map(s=>s.replace(new RegExp('^['+STRIP+']+|['+STRIP+']+$','g'),'').trim()).filter(Boolean);
-  const isDeco=s=>!s.replace(DECO,'').length;
+  const isDeco=s=>!s.replace(DECO,'').length || !/[ぁ-んァ-ヶ㐀-鿿가-힣A-Za-z0-9]/.test(s);
   const isTag=s=>/^[【#]/.test(s)||(/^G\.?E\.?M\./.test(s)&&!DICT.works[s]);
   const isBody=s=>/[、。「」（）]/.test(s)||/(より|登場|です|ます|サウンド|シリーズに|♪|✨|メガ|発売中|お知らせ|仕様|楽しめる|즐길|패턴|기대)/.test(s)||s.length>=20;
   const isDate=s=>/予約|⏰|発売日|예약/.test(s)||/[0-9０-９]{1,2}\s*月\s*[0-9０-９]{1,2}\s*日/.test(s);
@@ -403,15 +415,15 @@ function applySource(){
   let head=grab(/^\s*헤드라인\s*[:：]\s*(.+)$/m), work=grab(/^\s*작품(?:명)?\s*[:：]\s*(.+)$/m),
       line=grab(/^\s*(?:라인|시리즈)\s*[:：]\s*(.+)$/m), prod=grab(/^\s*제품명\s*[:：]\s*(.+)$/m),
       jp=grab(/^\s*일본어\s*[:：]\s*(.+)$/m), date=grab(/^\s*(?:예약판매일|예약일)\s*[:：]\s*(.+)$/m);
-  let approx=[], warnRaw=[], charLines=[], pendingKanji=[];
-  if(!(head||work||line||prod)){ const r=parseJP(txt); head=r.headline; work=r.work; line=r.line; prod=r.product; jp=r.jp; date=r.date; approx=r.approx||[]; warnRaw=r.warnRaw||[]; charLines=r.charLines||[]; pendingKanji=r.pendingKanji||[]; }
+  let approx=[], warnRaw=[], charLines=[], pendingKanji=[], dow='목';
+  if(!(head||work||line||prod)){ const r=parseJP(txt); head=r.headline; work=r.work; line=r.line; prod=r.product; jp=r.jp; date=r.date; approx=r.approx||[]; warnRaw=r.warnRaw||[]; charLines=r.charLines||[]; pendingKanji=r.pendingKanji||[]; dow=r.dow||'목'; }
   const miss=[];
   if(head){ if(!setSelect('t_headline',head)) miss.push('헤드라인'); else state.text.headline=head; } else miss.push('헤드라인');
   document.getElementById('t_work').value = work||''; state.work = work||''; if(!work) miss.push('작품');
   if(line){ if(!setSelect('t_line',line)) miss.push('라인('+line+')'); else state.line=line; } else miss.push('라인');
   { const v=(prod||'').split(/\s*[\/\n]\s*/).filter(Boolean).join('\n'); document.getElementById('t_product').value=v; state.text.product=v; if(!v && !pendingKanji.length) miss.push('제품명(캐릭터)'); }
   document.getElementById('t_jp').value = jp||''; state.jp = jp||'';
-  document.getElementById('t_saledate').value = date||''; state.saleDate = date||'';
+  document.getElementById('t_saledate').value = date||''; state.saleDate = date||''; state.saleDow = dow;
   composeTitle(); updatePreview(); render(); runValidation();
   const el=document.getElementById('srcStatus');
   if(!head&&!work&&!line&&!prod){ el.textContent='⚠ 인식 실패 — 일본어 원문을 그대로 붙여넣어 보세요. 그래도 안 되면 3번 칸에 직접 입력하세요.'; el.style.color='var(--danger)'; return; }
@@ -430,16 +442,15 @@ function buildCopy(){
   let prodLines=state.text.product.split('\n').map(s=>s.trim()).filter(Boolean);
   if(h==='한정 재판매 결정') prodLines=prodLines.map(l=>l+' 【한정 재판매판】');
   const prod=prodLines.join('\n');
-  const tags=[ state.jp.trim()?('#'+state.jp.trim().replace(/\s+/g,'')):null,
-               state.work.trim()?('#'+state.work.trim().replace(/\s+/g,'')):null,
-               '#메가하우스공식스토어' ].filter(Boolean).join(' ');
+  const tag = s => '#'+s.replace(/[^\w가-힣ぁ-んァ-ヶ㐀-鿿]/g,''); // ☆×・공백 등 태그 깨는 기호 제거
+  const tags=[ state.jp.trim()?tag(state.jp):null, state.work.trim()?tag(state.work):null, '#메가하우스공식스토어' ].filter(Boolean).join(' ');
   // 개발중(원형/채색원형 최초공개) → 팔로우 멘트 / 그 외(판매정보) → ※ 멘트 (줄바꿈 고정)
   const isDev = (h==='원형 최초공개' || h==='채색원형 최초공개');
   const bottom = isDev
     ? '메가하우스 공식 스토어를 팔로우하고\n기다리는 굿즈의 후속 정보를 가장 빠르게 받아보세요!'
     : '※ 예약 오픈 시 별도 공지\n※ 일본 현지 기준 소식으로, 국내외 사정에 따라 일부 사항이 변동될 수 있습니다.';
   const parts = [`📢[${h}] ${title}`, prod];
-  if(state.saleDate.trim()) parts.push(`⏰${state.saleDate.trim()}(목) 예약판매 시작!`);
+  if(state.saleDate.trim()) parts.push(`⏰${state.saleDate.trim()}(${state.saleDow||'목'}) 예약판매 시작!`);
   parts.push(bottom, tags);
   return parts.join('\n\n');
 }
