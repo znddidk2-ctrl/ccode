@@ -96,12 +96,17 @@ details.logos summary{font-size:11px;color:var(--ui-sub);cursor:pointer;padding:
   background:linear-gradient(165deg,#2676ec 0%,#1452c0 100%);
   padding:16px 36px 20px; color:#fff; flex:0 0 auto;
 }
-.p-hd .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
-.p-hd .brand{display:flex;align-items:center;gap:13px;}
+.p-hd .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.p-hd .brand{display:flex;align-items:center;gap:13px;flex-shrink:0;}
 .p-logo{height:64px;width:auto;display:block;}
-.p-store{font-size:22px;font-weight:800;letter-spacing:5px;opacity:.95;}
-.p-open{font-weight:700;font-size:38px;color:#FFE500;line-height:1;white-space:nowrap;letter-spacing:-.5px;text-shadow:0 1px 4px rgba(0,0,0,.15);}
+/* 스토어명: 로고~오픈일 사이 가운데 */
+.p-store{font-size:22px;font-weight:800;letter-spacing:5px;opacity:.95;flex:1;text-align:center;}
+.p-open{font-weight:700;font-size:38px;color:#FFE500;line-height:1;white-space:nowrap;letter-spacing:-.5px;text-shadow:0 1px 4px rgba(0,0,0,.15);flex-shrink:0;}
 .p-title{font-family:'Paperlogy','Pretendard',sans-serif;font-weight:900;font-size:92px;line-height:1;letter-spacing:-2px;text-shadow:0 3px 0 rgba(0,0,0,.1);text-align:center;}
+/* 재판 스티커 */
+.reprint-badge{position:absolute;top:10px;left:10px;z-index:10;
+  background:#0d1580;color:#fff;font-weight:900;font-size:20px;
+  padding:5px 16px;border-radius:8px;letter-spacing:-.3px;pointer-events:none;}
 
 /* 그리드 — flex 1 = 남은 공간 꽉 채움 */
 .p-grid{flex:1;padding:var(--gap);display:flex;flex-direction:column;gap:var(--gap);background:#fff;min-height:0;}
@@ -134,8 +139,8 @@ details.logos summary{font-size:11px;color:var(--ui-sub);cursor:pointer;padding:
 
 /* 푸터 */
 .p-ft{background:#fff;padding:10px 36px 14px;display:flex;align-items:center;justify-content:space-between;flex:0 0 auto;}
-.p-ft-note{color:#555;font-size:18px;font-weight:500;}
-.p-ft-logo{height:32px;width:auto;display:block;}
+.p-ft-note{color:#555;font-size:18px;font-weight:500;flex:1;text-align:center;}
+.p-ft-logo{height:32px;width:auto;display:block;flex-shrink:0;}
 
 /* 토스트 */
 .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#252018;
@@ -155,7 +160,18 @@ details.logos summary{font-size:11px;color:var(--ui-sub);cursor:pointer;padding:
     <div class="field"><label>월</label><input type="text" id="inMonth" value="6월"/></div>
     <div class="field"><label>오픈일 (노란색)</label><input type="text" id="inOpen" value="6/4"/></div>
   </div>
-  <div class="field"><label>스토어명</label><input type="text" id="inStore" value="메가하우스 공식 스토어"/></div>
+  <!-- 스토어명: 텍스트 + 폰트크기 -->
+  <div class="field"><label>스토어명 텍스트</label><input type="text" id="inStore" value="메가하우스 공식 스토어"/></div>
+  <div class="row2">
+    <div class="field"><label>스토어명 크기</label><input type="range" id="storeFontSize" min="14" max="40" value="22" oninput="syncHeader()"/></div>
+    <div class="field"><label>타이틀 크기</label><input type="range" id="titleFontSize" min="40" max="120" value="92" oninput="syncHeader()"/></div>
+  </div>
+  <!-- 푸터 텍스트 -->
+  <div class="field"><label>푸터 텍스트</label><input type="text" id="inFooter" value="국내외 사정에 따라 출시 시점 등 일부 사항이 변동될 수 있습니다."/></div>
+  <div class="row2">
+    <div class="field"><label>푸터 크기</label><input type="range" id="footerFontSize" min="10" max="28" value="18" oninput="syncHeader()"/></div>
+    <div class="field"><label>로고 크기</label><input type="range" id="logoSize" min="32" max="120" value="64" oninput="syncLogoSize()"/></div>
+  </div>
 
   <div class="sec">사진 업로드</div>
   <div class="ptabs">
@@ -202,17 +218,15 @@ details.logos summary{font-size:11px;color:var(--ui-sub);cursor:pointer;padding:
       <div class="poster" id="poster1">
         <div class="p-hd">
           <div class="top">
-            <div class="brand">
-              <img class="p-logo" id="logo1" alt="MH"/>
-              <div class="p-store" id="store1">메가하우스 공식 스토어</div>
-            </div>
+            <div class="brand"><img class="p-logo" id="logo1" alt="MH"/></div>
+            <div class="p-store" id="store1">메가하우스 공식 스토어</div>
             <div class="p-open" id="open1">6/4 오픈</div>
           </div>
           <div class="p-title" id="title1">6월 신제품 예고</div>
         </div>
         <div class="p-grid" id="grid1"></div>
         <div class="p-ft">
-          <div class="p-ft-note">국내외 사정에 따라 출시 시점 등 일부 사항이 변동될 수 있습니다.</div>
+          <div class="p-ft-note" id="ftNote1">국내외 사정에 따라 출시 시점 등 일부 사항이 변동될 수 있습니다.</div>
           <img class="p-ft-logo" id="pwlogo1" alt="PW"/>
         </div>
       </div>
@@ -225,17 +239,15 @@ details.logos summary{font-size:11px;color:var(--ui-sub);cursor:pointer;padding:
       <div class="poster" id="poster2">
         <div class="p-hd">
           <div class="top">
-            <div class="brand">
-              <img class="p-logo" id="logo2" alt="MH"/>
-              <div class="p-store" id="store2">메가하우스 공식 스토어</div>
-            </div>
+            <div class="brand"><img class="p-logo" id="logo2" alt="MH"/></div>
+            <div class="p-store" id="store2">메가하우스 공식 스토어</div>
             <div class="p-open" id="open2">6/4 오픈</div>
           </div>
           <div class="p-title" id="title2">6월 신제품 예고</div>
         </div>
         <div class="p-grid" id="grid2"></div>
         <div class="p-ft">
-          <div class="p-ft-note">국내외 사정에 따라 출시 시점 등 일부 사항이 변동될 수 있습니다.</div>
+          <div class="p-ft-note" id="ftNote2">국내외 사정에 따라 출시 시점 등 일부 사항이 변동될 수 있습니다.</div>
           <img class="p-ft-logo" id="pwlogo2" alt="PW"/>
         </div>
       </div>
@@ -322,6 +334,12 @@ function makeCell(it, ri, pg) {
   }
   cell.appendChild(ci);
 
+  if (it.reprint) {
+    const badge = document.createElement('div');
+    badge.className = 'reprint-badge';
+    badge.textContent = '재판';
+    cell.appendChild(badge);
+  }
   if (it.name && it.name.trim()) {
     const nm = document.createElement('div');
     nm.className = 'name';
@@ -451,8 +469,19 @@ function renderItemList() {
     inp.placeholder = '제품명 (줄바꿈: \\n)'; inp.value = it.name || '';
     inp.addEventListener('input', () => { it.name = inp.value.replace(/\\n/g,'\n'); renderGrid(curPage); });
     grow.appendChild(inp);
+    // 재판 체크박스
+    const chkRow = document.createElement('div');
+    chkRow.style.cssText = 'display:flex;align-items:center;gap:5px;margin-top:3px;';
+    const chk = document.createElement('input'); chk.type='checkbox'; chk.checked=!!it.reprint;
+    chk.id='rp_'+it.id;
+    chk.addEventListener('change', ()=>{ it.reprint=chk.checked; renderGrid(curPage); });
+    const lbl = document.createElement('label'); lbl.htmlFor='rp_'+it.id;
+    lbl.style.cssText='font-size:10.5px;color:var(--ui-sub);cursor:pointer;';
+    lbl.textContent='재판';
+    chkRow.append(chk, lbl);
     const hint = document.createElement('div'); hint.className = 'hint'; hint.textContent = `#${i+1}`;
-    grow.appendChild(hint);
+    chkRow.appendChild(hint);
+    grow.appendChild(chkRow);
     wrap.appendChild(grow);
 
     const ctrl = document.createElement('div'); ctrl.className = 'ctrl';
@@ -499,11 +528,23 @@ function syncHeader() {
   const m = $('#inMonth').value.trim();
   const o = $('#inOpen').value.trim();
   const s = $('#inStore').value.trim();
+  const ft = $('#inFooter').value.trim();
+  const sSize = $('#storeFontSize').value + 'px';
+  const tSize = $('#titleFontSize').value + 'px';
+  const fSize = $('#footerFontSize').value + 'px';
   [1,2].forEach(p => {
     $(`#title${p}`).textContent = m ? `${m} 신제품 예고` : '신제품 예고';
+    $(`#title${p}`).style.fontSize = tSize;
     $(`#open${p}`).textContent = o ? `${o} 오픈` : '';
     $(`#store${p}`).textContent = s;
+    $(`#store${p}`).style.fontSize = sSize;
+    const fn = $(`#ftNote${p}`);
+    if (fn) { fn.textContent = ft; fn.style.fontSize = fSize; }
   });
+}
+function syncLogoSize() {
+  const sz = $('#logoSize').value + 'px';
+  ['#logo1','#logo2'].forEach(id => { const el=$(id); if(el) el.style.height=sz; });
 }
 
 /* ═══════════════════════════════════════
@@ -634,6 +675,7 @@ $('#drop').addEventListener('drop', e => addFiles(e.dataTransfer.files));
 $('#inMonth').addEventListener('input', syncHeader);
 $('#inOpen').addEventListener('input', syncHeader);
 $('#inStore').addEventListener('input', syncHeader);
+$('#inFooter').addEventListener('input', syncHeader);
 
 $('#gradSlider').addEventListener('input', e => {
   $('#gradVal').textContent = e.target.value + '%';
