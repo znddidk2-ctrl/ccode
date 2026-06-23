@@ -668,12 +668,17 @@ function syncGrad() {
   if ($('#gradValW')) $('#gradValW').textContent = w + '%';
   if ($('#gradValO')) $('#gradValO').textContent = Math.round(o*100) + '%';
   if ($('#gradValC')) $('#gradValC').textContent = c + '%';
-  // compress: gradient ends at (100-c)%, creating a tighter band at bottom
-  const bottom = 100 - c;
-  const end = Math.min(bottom, s + w);
-  const mid = Math.min(end, s + Math.round(w * 0.4));
-  const grad = `linear-gradient(to bottom,transparent 0%,rgba(0,0,0,0) ${s}%,rgba(0,0,0,${(o*0.55).toFixed(2)}) ${mid}%,rgba(0,0,0,${o.toFixed(2)}) ${end}%,rgba(0,0,0,${o.toFixed(2)}) ${bottom}%,rgba(0,0,0,0) 100%)`;
-  document.querySelectorAll('.cell .name').forEach(nm => nm.style.background = grad);
+  // Gradient: transparent → opaque over w%, capped at 100%
+  const mid = Math.min(100, Math.round(w * 0.45));
+  const end = Math.min(100, w);
+  const grad = `linear-gradient(to bottom,transparent 0%,rgba(0,0,0,0) ${s}%,rgba(0,0,0,${(o*0.5).toFixed(2)}) ${s + mid}%,rgba(0,0,0,${o.toFixed(2)}) ${s + end}%,rgba(0,0,0,${o.toFixed(2)}) 100%)`;
+  // compress: shrink the overlay height — reduce padding-top so band is tighter
+  // compress=0 → paddingTop=80px (tall band), compress=60 → paddingTop=10px (thin band)
+  const pt = Math.round(80 - c * (70/60));
+  document.querySelectorAll('.cell .name').forEach(nm => {
+    nm.style.background = grad;
+    nm.style.paddingTop = pt + 'px';
+  });
 }
 function syncBadgeStyle() {
   const bg = $('#badgeBg') ? $('#badgeBg').value.trim() : '#0d1580';
@@ -849,7 +854,6 @@ function toast(msg) {
 function saveState() {
   try {
     const state = {
-      pages: pages.map(pg => pg.map(it => ({...it}))),
       rowFontSizes, firstRowFlex,
       month: $('#inMonth').value,
       open: $('#inOpen').value,
@@ -879,9 +883,6 @@ function loadState() {
     const raw = localStorage.getItem('mh_maker_state');
     if (!raw) return;
     const st = JSON.parse(raw);
-    // restore pages
-    pages[0] = (st.pages[0] || []).map(it => ({...it, id: idSeq++}));
-    pages[1] = (st.pages[1] || []).map(it => ({...it, id: idSeq++}));
     rowFontSizes = st.rowFontSizes || [[36,36,36,36],[36,36,36,36]];
     firstRowFlex = st.firstRowFlex || [null, null];
     // restore panel inputs
@@ -903,6 +904,9 @@ function loadState() {
     if (st.footerOffset && $('#footerOffset')) $('#footerOffset').value = st.footerOffset;
     if (st.badgeBg && $('#badgeBg')) $('#badgeBg').value = st.badgeBg;
     if (st.badgeFg && $('#badgeFg')) $('#badgeFg').value = st.badgeFg;
+    // update display labels for sliders
+    if (st.storeOffset && $('#storeOffsetVal')) $('#storeOffsetVal').textContent = st.storeOffset;
+    if (st.footerOffset && $('#footerOffsetVal')) $('#footerOffsetVal').textContent = st.footerOffset;
   } catch(e) {}
 }
 
