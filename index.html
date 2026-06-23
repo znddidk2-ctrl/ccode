@@ -100,13 +100,16 @@ details.logos summary{font-size:11px;color:var(--ui-sub);cursor:pointer;padding:
 .p-hd .brand{display:flex;align-items:center;gap:13px;flex-shrink:0;}
 .p-logo{height:64px;width:auto;display:block;}
 /* 스토어명: 로고~오픈일 사이 가운데 */
-.p-store{font-size:22px;font-weight:800;letter-spacing:5px;opacity:.95;flex:1;text-align:center;}
+.p-store{font-size:22px;font-weight:800;letter-spacing:5px;opacity:.95;flex:1;text-align:center;white-space:pre;}
 .p-open{font-weight:700;font-size:38px;color:#FFE500;line-height:1;white-space:nowrap;letter-spacing:-.5px;text-shadow:0 1px 4px rgba(0,0,0,.15);flex-shrink:0;}
 .p-title{font-family:'Paperlogy','Pretendard',sans-serif;font-weight:900;font-size:92px;line-height:1;letter-spacing:-2px;text-shadow:0 3px 0 rgba(0,0,0,.1);text-align:center;}
-/* 재판 스티커 */
-.reprint-badge{position:absolute;top:10px;left:10px;z-index:10;
-  background:#0d1580;color:#fff;font-weight:900;font-size:20px;
-  padding:5px 16px;border-radius:8px;letter-spacing:-.3px;pointer-events:none;}
+/* 재판 스티커 — 이름 옆 인라인 */
+.reprint-badge{
+  display:inline-block;
+  background:#0d1580;color:#fff;font-weight:900;font-size:.72em;
+  padding:2px 10px;border-radius:6px;letter-spacing:-.2px;
+  vertical-align:middle;margin-left:8px;white-space:nowrap;
+}
 
 /* 그리드 — flex 1 = 남은 공간 꽉 채움 */
 .p-grid{flex:1;padding:var(--gap);display:flex;flex-direction:column;gap:var(--gap);background:#fff;min-height:0;}
@@ -132,9 +135,11 @@ details.logos summary{font-size:11px;color:var(--ui-sub);cursor:pointer;padding:
   position:absolute;left:0;right:0;bottom:0;
   color:#fff;font-weight:800;pointer-events:none;
   padding:50px 14px 12px;
-  line-height:1.2;letter-spacing:-.3px;white-space:pre-line;word-break:keep-all;
+  line-height:1.2;letter-spacing:-.3px;word-break:keep-all;
+  display:flex;align-items:flex-end;flex-wrap:wrap;gap:0;
   background:linear-gradient(to bottom,transparent 0%,rgba(0,0,0,0) var(--gs,20%),rgba(0,0,0,.65) 70%,rgba(0,0,0,.88) 100%);
 }
+.cell .name .name-text{white-space:pre-line;}
 .cell.editing{outline:2px solid #4c8dff;outline-offset:-2px;}
 
 /* 푸터 */
@@ -334,17 +339,21 @@ function makeCell(it, ri, pg) {
   }
   cell.appendChild(ci);
 
-  if (it.reprint) {
-    const badge = document.createElement('div');
-    badge.className = 'reprint-badge';
-    badge.textContent = '재판';
-    cell.appendChild(badge);
-  }
-  if (it.name && it.name.trim()) {
+  // Always render .name div if there's a name OR reprint badge
+  if ((it.name && it.name.trim()) || it.reprint) {
     const nm = document.createElement('div');
     nm.className = 'name';
     nm.style.setProperty('--gs', $('#gradSlider').value + '%');
-    nm.textContent = it.name;
+    const txtSpan = document.createElement('span');
+    txtSpan.className = 'name-text';
+    txtSpan.textContent = it.name || '';
+    nm.appendChild(txtSpan);
+    if (it.reprint) {
+      const badge = document.createElement('span');
+      badge.className = 'reprint-badge';
+      badge.textContent = '재판';
+      nm.appendChild(badge);
+    }
     cell.appendChild(nm);
   }
   return cell;
@@ -465,23 +474,27 @@ function renderItemList() {
     wrap.appendChild(thumb);
 
     const grow = document.createElement('div'); grow.className = 'grow';
+    // 입력칸 + 재판 체크박스 한 줄에
+    const inpRow = document.createElement('div');
+    inpRow.style.cssText = 'display:flex;align-items:center;gap:6px;';
     const inp = document.createElement('input'); inp.type = 'text';
-    inp.placeholder = '제품명 (줄바꿈: \\n)'; inp.value = it.name || '';
+    inp.placeholder = '제품명'; inp.value = it.name ? it.name.replace(/\n/g,'\\n') : '';
+    inp.style.cssText = 'flex:1;min-width:0;background:var(--ui-bg);border:1px solid var(--ui-border);color:var(--ui-text);border-radius:5px;padding:5px 7px;font-size:12px;font-family:inherit;';
     inp.addEventListener('input', () => { it.name = inp.value.replace(/\\n/g,'\n'); renderGrid(curPage); });
-    grow.appendChild(inp);
-    // 재판 체크박스
-    const chkRow = document.createElement('div');
-    chkRow.style.cssText = 'display:flex;align-items:center;gap:5px;margin-top:3px;';
+    // 재판 체크박스 인라인
+    const rpWrap = document.createElement('label');
+    rpWrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;cursor:pointer;';
     const chk = document.createElement('input'); chk.type='checkbox'; chk.checked=!!it.reprint;
-    chk.id='rp_'+it.id;
+    chk.style.cssText = 'width:14px;height:14px;accent-color:var(--ui-accent);cursor:pointer;';
     chk.addEventListener('change', ()=>{ it.reprint=chk.checked; renderGrid(curPage); });
-    const lbl = document.createElement('label'); lbl.htmlFor='rp_'+it.id;
-    lbl.style.cssText='font-size:10.5px;color:var(--ui-sub);cursor:pointer;';
-    lbl.textContent='재판';
-    chkRow.append(chk, lbl);
+    const rpLbl = document.createElement('span');
+    rpLbl.style.cssText = 'font-size:9px;color:var(--ui-sub);line-height:1;';
+    rpLbl.textContent = '재판';
+    rpWrap.append(chk, rpLbl);
+    inpRow.append(inp, rpWrap);
+    grow.appendChild(inpRow);
     const hint = document.createElement('div'); hint.className = 'hint'; hint.textContent = `#${i+1}`;
-    chkRow.appendChild(hint);
-    grow.appendChild(chkRow);
+    grow.appendChild(hint);
     wrap.appendChild(grow);
 
     const ctrl = document.createElement('div'); ctrl.className = 'ctrl';
