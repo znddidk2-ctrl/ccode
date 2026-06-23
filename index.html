@@ -79,8 +79,8 @@ details.logos summary{font-size:11px;color:var(--ui-sub);cursor:pointer;padding:
 .stage{flex:1;height:100vh;overflow:auto;display:flex;flex-direction:column;align-items:center;
   background:#dedad2;background-image:radial-gradient(#c8c4bc 1px,transparent 1px);
   background-size:20px 20px;padding:28px 28px 60px;gap:24px;}
-.poster-wrap{display:flex;flex-direction:column;align-items:flex-start;gap:6px;}
-.scaler{transform-origin:top left;display:inline-block;}
+.poster-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;}
+.scaler{transform-origin:top center;display:inline-block;}
 .page-badge{background:rgba(0,0,0,.3);color:#fff;font-size:11px;font-weight:700;
   padding:4px 12px;border-radius:20px;align-self:flex-start;}
 
@@ -587,15 +587,14 @@ async function downloadPNG() {
    스케일 (화면 맞춤)
 ═══════════════════════════════════════ */
 function fitScale() {
-  const stageW = $('#stage').clientWidth;
-  // 두 포스터가 나란히 있을 때 and 따로일 때 모두 맞추기
-  const avail = stageW - 56;
+  const avail = $('#stage').clientWidth - 56;
   const scale = Math.min(1, avail / 1080);
   ['sc1','sc2'].forEach(id => {
-    const el = $(`.scaler#${id}`);
+    const el = document.getElementById(id);
     if (!el) return;
     el.style.transform = `scale(${scale})`;
     el.style.width = '1080px';
+    // top center origin: 시각적 너비 = 1080*scale, 부모 align-items:center가 중앙 배치
     el.style.height = (1350 * scale) + 'px';
   });
 }
