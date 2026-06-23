@@ -145,7 +145,8 @@ details.logos summary{font-size:11px;color:var(--ui-sub);cursor:pointer;padding:
 /* 푸터 */
 .p-ft{background:#fff;padding:10px 36px 14px;display:flex;align-items:center;justify-content:space-between;flex:0 0 auto;}
 .p-ft-note{color:#555;font-size:18px;font-weight:500;flex:1;text-align:center;}
-.p-ft-logo{height:32px;width:auto;display:block;flex-shrink:0;}
+.p-ft-logo-wrap{flex-shrink:0;display:flex;align-items:center;justify-content:flex-end;overflow:visible;}
+.p-ft-logo{height:32px;width:auto;display:block;transform-origin:right center;}
 
 /* 토스트 */
 .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#252018;
@@ -205,7 +206,8 @@ details.logos summary{font-size:11px;color:var(--ui-sub);cursor:pointer;padding:
   <div class="field"><label>푸터 텍스트</label><input type="text" id="inFooter" value="국내외 사정에 따라 출시 시점 등 일부 사항이 변동될 수 있습니다."/></div>
   <div class="row2">
     <div class="field"><label>푸터 크기</label><input type="range" id="footerFontSize" min="10" max="28" value="18" oninput="syncHeader()"/></div>
-    <div class="field"><label>로고 크기</label><input type="range" id="logoSize" min="32" max="120" value="64" oninput="syncLogoSize()"/></div>
+    <div class="field"><label>상단 로고 크기</label><input type="range" id="logoSize" min="32" max="120" value="64" oninput="syncLogoSize()"/></div>
+    <div class="field"><label>하단 PW 로고 크기</label><input type="range" id="pwLogoSize" min="16" max="100" value="32" oninput="syncLogoSize()"/></div>
   </div>
 
   <div class="sec">사진 업로드</div>
@@ -262,7 +264,7 @@ details.logos summary{font-size:11px;color:var(--ui-sub);cursor:pointer;padding:
         <div class="p-grid" id="grid1"></div>
         <div class="p-ft">
           <div class="p-ft-note" id="ftNote1">국내외 사정에 따라 출시 시점 등 일부 사항이 변동될 수 있습니다.</div>
-          <img class="p-ft-logo" id="pwlogo1" alt="PW"/>
+          <div class="p-ft-logo-wrap"><img class="p-ft-logo" id="pwlogo1" alt="PW"/></div>
         </div>
       </div>
     </div>
@@ -283,7 +285,7 @@ details.logos summary{font-size:11px;color:var(--ui-sub);cursor:pointer;padding:
         <div class="p-grid" id="grid2"></div>
         <div class="p-ft">
           <div class="p-ft-note" id="ftNote2">국내외 사정에 따라 출시 시점 등 일부 사항이 변동될 수 있습니다.</div>
-          <img class="p-ft-logo" id="pwlogo2" alt="PW"/>
+          <div class="p-ft-logo-wrap"><img class="p-ft-logo" id="pwlogo2" alt="PW"/></div>
         </div>
       </div>
     </div>
@@ -306,6 +308,7 @@ const pages = [
 let curPage = 1;
 let idSeq = 1;
 let rowFontSizes = [[36,36,36,36],[36,36,36,36]]; // [page][row]
+let firstRowFlex = [null, null]; // first row flex override per page
 const $ = s => document.querySelector(s);
 
 /* ═══════════════════════════════════════
@@ -612,8 +615,11 @@ function syncHeader() {
   });
 }
 function syncLogoSize() {
-  const sz = $('#logoSize').value + 'px';
-  ['#logo1','#logo2'].forEach(id => { const el=$(id); if(el) el.style.height=sz; });
+  const topSz = $('#logoSize').value + 'px';
+  ['#logo1','#logo2'].forEach(id => { const el=$(id); if(el) el.style.height=topSz; });
+  // PW logo: use transform scale so footer layout doesn't shift
+  const pwScale = (+$('#pwLogoSize').value) / 32;
+  ['#pwlogo1','#pwlogo2'].forEach(id => { const el=$(id); if(el) el.style.transform=`scale(${pwScale})`; });
 }
 function nudgeStore(delta) {
   const sl = $('#storeOffset');
@@ -773,7 +779,7 @@ $('#btnApplyBulk').addEventListener('click', applyBulk);
 $('#btnDownload').addEventListener('click', downloadPNG);
 $('#btnReset').addEventListener('click', () => {
   if (!confirm('모두 초기화할까요?')) return;
-  pages[0]=[]; pages[1]=[]; rowFontSizes=[[36,36,36,36],[36,36,36,36]]; firstRowFlex=[null,null];
+  pages[0]=[]; pages[1]=[]; rowFontSizes=[[36,36,36,36],[36,36,36,36]]; firstRowFlex=[null,null]; localStorage.removeItem('mh_maker_state');
   refresh();
 });
 
@@ -794,8 +800,69 @@ function toast(msg) {
 ═══════════════════════════════════════ */
 ['#logo1','#logo2'].forEach(id => { const el=$(id); if(el) el.src=MEGA_SRC; });
 ['#pwlogo1','#pwlogo2'].forEach(id => { const el=$(id); if(el) el.src=PW_SRC; });
+
+/* ── localStorage 캐시 ── */
+function saveState() {
+  try {
+    const state = {
+      pages: pages.map(pg => pg.map(it => ({...it}))),
+      rowFontSizes, firstRowFlex,
+      month: $('#inMonth').value,
+      open: $('#inOpen').value,
+      store: $('#inStore').value,
+      footer: $('#inFooter').value,
+      storeFontSize: $('#storeFontSize').value,
+      titleFontSize: $('#titleFontSize').value,
+      footerFontSize: $('#footerFontSize').value,
+      logoSize: $('#logoSize').value,
+      pwLogoSize: $('#pwLogoSize') ? $('#pwLogoSize').value : '32',
+      storeFontWeight: $('#storeFontWeight') ? $('#storeFontWeight').value : '800',
+      storeOffset: $('#storeOffset') ? $('#storeOffset').value : '0',
+      gradSlider: $('#gradSlider').value,
+      badgeBg: $('#badgeBg') ? $('#badgeBg').value : '#0d1580',
+      badgeFg: $('#badgeFg') ? $('#badgeFg').value : '#ffffff',
+    };
+    localStorage.setItem('mh_maker_state', JSON.stringify(state));
+  } catch(e) {}
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem('mh_maker_state');
+    if (!raw) return;
+    const st = JSON.parse(raw);
+    // restore pages
+    pages[0] = (st.pages[0] || []).map(it => ({...it, id: idSeq++}));
+    pages[1] = (st.pages[1] || []).map(it => ({...it, id: idSeq++}));
+    rowFontSizes = st.rowFontSizes || [[36,36,36,36],[36,36,36,36]];
+    firstRowFlex = st.firstRowFlex || [null, null];
+    // restore panel inputs
+    if (st.month) $('#inMonth').value = st.month;
+    if (st.open)  $('#inOpen').value  = st.open;
+    if (st.store) $('#inStore').value = st.store;
+    if (st.footer) $('#inFooter').value = st.footer;
+    if (st.storeFontSize) $('#storeFontSize').value = st.storeFontSize;
+    if (st.titleFontSize) $('#titleFontSize').value = st.titleFontSize;
+    if (st.footerFontSize) $('#footerFontSize').value = st.footerFontSize;
+    if (st.logoSize) $('#logoSize').value = st.logoSize;
+    if (st.pwLogoSize && $('#pwLogoSize')) $('#pwLogoSize').value = st.pwLogoSize;
+    if (st.storeFontWeight && $('#storeFontWeight')) $('#storeFontWeight').value = st.storeFontWeight;
+    if (st.storeOffset && $('#storeOffset')) $('#storeOffset').value = st.storeOffset;
+    if (st.gradSlider) { $('#gradSlider').value = st.gradSlider; $('#gradVal').textContent = st.gradSlider + '%'; }
+    if (st.badgeBg && $('#badgeBg')) $('#badgeBg').value = st.badgeBg;
+    if (st.badgeFg && $('#badgeFg')) $('#badgeFg').value = st.badgeFg;
+  } catch(e) {}
+}
+
+loadState();
 syncHeader();
+syncLogoSize();
+syncBadgeStyle();
 refresh();
+
+// auto-save on any data change — hook into refresh
+const _origRefresh = refresh;
+window.refresh = function() { _origRefresh(); saveState(); };
 </script>
 </body>
 </html>
