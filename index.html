@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>메가하우스 신제품 예고 이미지 메이커</title>
+
+<!-- 폰트: CDN + 시스템 폴백 -->
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+<style>
+  /* Paperlogy: CDN 시도(없으면 굵은 산세리프 폴백) */
+  @font-face {
+    font-family: 'Paperlogy';
+    font-weight: 900;
+    font-display: swap;
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-9Black.woff2') format('woff2');
+  }
+
+  :root {
+    --header-blue-1: #1f6fe0;
+    --header-blue-2: #1657c4;
+    --open-yellow: #ffe11a;
+    --ui-bg: #0f1115;
+    --ui-panel: #181b22;
+    --ui-border: #2a2f3a;
+    --ui-text: #e7ebf2;
+    --ui-sub: #98a2b3;
+    --ui-accent: #4c8dff;
+    --poster-w: 1080px;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--ui-bg);
+    color: var(--ui-text);
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Malgun Gothic', sans-serif;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ---------- 좌측 컨트롤 패널 ---------- */
+  .panel {
+    width: 420px;
+    min-width: 420px;
+    height: 100vh;
+    overflow-y: auto;
+    border-right: 1px solid var(--ui-border);
+    background: var(--ui-panel);
+    padding: 22px 22px 80px;
+  }
+  .panel h1 {
+    font-size: 18px;
+    margin: 0 0 4px;
+    letter-spacing: -0.3px;
+  }
+  .panel .desc { color: var(--ui-sub); font-size: 12.5px; margin: 0 0 20px; line-height: 1.5; }
+
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 12.5px; color: var(--ui-sub); margin-bottom: 6px; font-weight: 600; }
+  .field input[type=text], .field input[type=number] {
+    width: 100%;
+    background: #0d0f14;
+    border: 1px solid var(--ui-border);
+    color: var(--ui-text);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-family: inherit;
+  }
+  .field input:focus { outline: none; border-color: var(--ui-accent); }
+  .row2 { display: flex; gap: 10px; }
+  .row2 .field { flex: 1; }
+
+  .dropzone {
+    border: 1.5px dashed var(--ui-border);
+    border-radius: 10px;
+    padding: 22px 14px;
+    text-align: center;
+    color: var(--ui-sub);
+    font-size: 13px;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .dropzone:hover, .dropzone.drag { border-color: var(--ui-accent); background: rgba(76,141,255,.06); }
+  .dropzone b { color: var(--ui-text); }
+
+  .items { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .item {
+    display: flex; gap: 10px; align-items: center;
+    background: #0d0f14; border: 1px solid var(--ui-border);
+    border-radius: 10px; padding: 8px;
+  }
+  .item .thumb {
+    width: 52px; height: 52px; flex: 0 0 52px;
+    border-radius: 6px; object-fit: cover; background: #222;
+  }
+  .item .grow { flex: 1; min-width: 0; }
+  .item .grow input {
+    width: 100%; background: #14171e; border: 1px solid var(--ui-border);
+    color: var(--ui-text); border-radius: 6px; padding: 7px 9px; font-size: 13px; font-family: inherit;
+  }
+  .item .grow .hint { font-size: 10.5px; color: var(--ui-sub); margin-top: 3px; }
+  .item .ctrl { display: flex; flex-direction: column; gap: 4px; }
+  .item .ctrl button {
+    width: 26px; height: 22px; border-radius: 5px; border: 1px solid var(--ui-border);
+    background: #1b1f27; color: var(--ui-text); cursor: pointer; font-size: 11px; line-height: 1;
+  }
+  .item .ctrl button:hover { border-color: var(--ui-accent); }
+  .item .del { color: #ff7a7a !important; }
+
+  .actions { position: sticky; bottom: 0; margin-top: 20px; padding-top: 14px;
+    background: linear-gradient(transparent, var(--ui-panel) 30%); display: flex; gap: 10px; }
+  button.primary, button.ghost {
+    flex: 1; padding: 12px; border-radius: 9px; font-size: 14px; font-weight: 700;
+    cursor: pointer; border: 1px solid var(--ui-border); font-family: inherit;
+  }
+  button.primary { background: var(--ui-accent); color: #fff; border-color: var(--ui-accent); }
+  button.primary:hover { filter: brightness(1.08); }
+  button.ghost { background: transparent; color: var(--ui-text); }
+  button.ghost:hover { border-color: var(--ui-accent); }
+
+  details.logos { margin-top: 6px; }
+  details.logos summary { font-size: 12.5px; color: var(--ui-sub); cursor: pointer; padding: 6px 0; }
+  details.logos .field label { font-size: 12px; }
+
+  /* ---------- 우측 프리뷰 ---------- */
+  .stage {
+    flex: 1; height: 100vh; overflow: auto;
+    display: flex; align-items: flex-start; justify-content: center;
+    background: repeating-conic-gradient(#15171d 0% 25%, #121419 0% 50%) 50%/28px 28px;
+    padding: 40px;
+  }
+  .scaler { transform-origin: top center; }
+
+  /* ---------- 포스터 (실제 1080px) ---------- */
+  #poster {
+    width: var(--poster-w);
+    background: #ffffff;
+    font-family: 'Pretendard', sans-serif;
+    color: #111;
+    overflow: hidden;
+  }
+  .p-header {
+    background: linear-gradient(180deg, var(--header-blue-1), var(--header-blue-2));
+    padding: 26px 44px 30px;
+    color: #fff;
+    position: relative;
+  }
+  .p-header .toprow { display: flex; align-items: center; justify-content: space-between; }
+  .p-header .brand { display: flex; align-items: center; gap: 14px; }
+  .p-logo {
+    height: 64px; width: auto; display: block;
+  }
+  .p-logo-fallback {
+    display: flex; align-items: center; gap: 8px;
+    background: #fff; color: #1657c4; font-weight: 900; font-size: 22px;
+    padding: 8px 14px; border-radius: 8px; letter-spacing: -.5px;
+  }
+  .p-store {
+    font-size: 30px; font-weight: 800; letter-spacing: 6px; opacity: .96;
+  }
+  .p-open {
+    font-family: 'Paperlogy', 'Pretendard', sans-serif;
+    font-weight: 900; font-size: 46px; color: var(--open-yellow);
+    line-height: 1; white-space: nowrap;
+    text-shadow: 0 2px 0 rgba(0,0,0,.12);
+  }
+  .p-title {
+    font-family: 'Paperlogy', 'Pretendard', sans-serif;
+    font-weight: 900; font-size: 96px; line-height: 1.02; margin-top: 10px;
+    letter-spacing: -1px; text-shadow: 0 4px 0 rgba(0,0,0,.13);
+  }
+
+  .p-grid { padding: 22px; display: flex; flex-direction: column; gap: 18px; background: #fff; }
+  .p-rowflex { display: flex; gap: 18px; }
+  .cell {
+    position: relative; flex: 1; border-radius: 16px; overflow: hidden;
+    background: #e9edf3; aspect-ratio: 4 / 3;
+  }
+  .cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .cell .empty {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    color: #aab2c0; font-size: 18px;
+  }
+  .cell .name {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,.62);
+    color: #fff; font-weight: 800;
+    padding: 14px 18px;
+    line-height: 1.15; letter-spacing: -.5px;
+    white-space: pre-line;
+    word-break: keep-all;
+  }
+
+  .p-footer {
+    background: #fff; padding: 18px 44px 26px;
+    display: flex; align-items: center; justify-content: space-between; gap: 20px;
+  }
+  .p-foot-note { color: #444; font-size: 22px; font-weight: 600; }
+  .p-foot-logo { height: 40px; width: auto; }
+  .p-foot-logo-fallback { font-weight: 900; font-size: 34px; color: #1657c4; letter-spacing: -1px; }
+
+  .toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: #222a36; color: #fff; padding: 12px 18px; border-radius: 10px;
+    font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 50;
+    border: 1px solid var(--ui-border);
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<!-- ============ 컨트롤 패널 ============ -->
+<div class="panel">
+  <h1>메가하우스 신제품 예고 메이커</h1>
+  <p class="desc">사진을 올리고 제품명을 입력하면 그리드가 자동 조립됩니다. 배치는 개수에 맞춰 자동 계산(최소 2칸·최대 3칸).</p>
+
+  <div class="row2">
+    <div class="field">
+      <label>월 (헤더 큰 글씨)</label>
+      <input type="text" id="inMonth" value="6월" />
+    </div>
+    <div class="field">
+      <label>오픈일 (노란 글씨)</label>
+      <input type="text" id="inOpen" value="6/4" />
+    </div>
+  </div>
+  <div class="field">
+    <label>스토어 라인 (작은 글씨)</label>
+    <input type="text" id="inStore" value="메가하우스 공식 스토어" />
+  </div>
+
+  <div class="field">
+    <label>사진 업로드 (여러 장 가능 · 2~15장)</label>
+    <div class="dropzone" id="drop">
+      <b>클릭</b>하거나 사진을 <b>드래그</b>하세요
+    </div>
+    <input type="file" id="fileInput" accept="image/*" multiple hidden />
+  </div>
+
+  <div class="items" id="itemList"></div>
+
+  <details class="logos">
+    <summary>로고 교체 (메가하우스 / PW:)</summary>
+    <div class="field">
+      <label>메가하우스 로고 (헤더)</label>
+      <input type="file" id="logoMega" accept="image/*" />
+    </div>
+    <div class="field">
+      <label>PW: 로고 (푸터)</label>
+      <input type="file" id="logoPW" accept="image/*" />
+    </div>
+  </details>
+
+  <div class="actions">
+    <button class="ghost" id="btnReset">초기화</button>
+    <button class="primary" id="btnDownload">PNG 다운로드</button>
+  </div>
+</div>
+
+<!-- ============ 프리뷰 ============ -->
+<div class="stage" id="stage">
+  <div class="scaler" id="scaler">
+    <div id="poster">
+      <div class="p-header">
+        <div class="toprow">
+          <div class="brand">
+            <img class="p-logo" id="megaLogoImg" style="display:none" alt="MegaHouse" />
+            <div class="p-logo-fallback" id="megaLogoFallback">MegaHouse</div>
+          </div>
+          <div class="p-open" id="outOpen">6/4 오픈</div>
+        </div>
+        <div class="p-store" id="outStore">메가하우스 공식 스토어</div>
+        <div class="p-title" id="outTitle">6월 신제품 예고</div>
+      </div>
+
+      <div class="p-grid" id="grid"></div>
+
+      <div class="p-footer">
+        <div class="p-foot-note">국내외 사정에 따라 출시 시점 등 일부 사항이 변동될 수 있습니다.</div>
+        <img class="p-foot-logo" id="pwLogoImg" style="display:none" alt="PW" />
+        <div class="p-foot-logo-fallback" id="pwLogoFallback">PW:</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- PNG 추출: html-to-image (CDN, 최초 1회 온라인 시 캐시됨) -->
+<script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
+<script>
+/* =========================================================
+   상태
+========================================================= */
+const state = {
+  items: [],   // { id, src, name }
+};
+let idSeq = 1;
+
+const $ = (s) => document.querySelector(s);
+
+/* =========================================================
+   배치 알고리즘
+   규칙: 최소 2칸 · 최대 3칸, 각 줄 최대한 균등, 적은 줄이 앞
+   - rows = ceil(n/3)  → 최대 3칸 유지 & 줄 수 최소화
+   - n을 rows줄로 균등 분배, 큰 줄(+1)을 뒤로
+   예) 2→[2] 5→[2,3] 9→[3,3,3] 11→[2,3,3,3] 13→[2,2,3,3,3]
+========================================================= */
+function computeRows(n) {
+  if (n <= 0) return [];
+  if (n <= 3) return [n];
+  const rows = Math.ceil(n / 3);
+  const base = Math.floor(n / rows);
+  const rem = n - base * rows;          // rem개 줄은 base+1
+  const out = [];
+  for (let i = 0; i < rows; i++) {
+    // 적은(=base) 줄을 앞에, 많은(=base+1) 줄을 뒤에
+    out.push(i < rows - rem ? base : base + 1);
+  }
+  return out;
+}
+
+/* =========================================================
+   렌더링
+========================================================= */
+function renderGrid() {
+  const grid = $('#grid');
+  grid.innerHTML = '';
+  const counts = computeRows(state.items.length);
+  let idx = 0;
+  for (const c of counts) {
+    const row = document.createElement('div');
+    row.className = 'p-rowflex';
+    for (let k = 0; k < c; k++) {
+      const it = state.items[idx++];
+      row.appendChild(makeCell(it));
+    }
+    grid.appendChild(row);
+  }
+  // 글자 크기 자동 맞춤은 다음 프레임에
+  requestAnimationFrame(fitAllNames);
+}
+
+function makeCell(it) {
+  const cell = document.createElement('div');
+  cell.className = 'cell';
+  if (it.src) {
+    const img = document.createElement('img');
+    img.src = it.src;
+    cell.appendChild(img);
+  } else {
+    const e = document.createElement('div');
+    e.className = 'empty';
+    e.textContent = '이미지';
+    cell.appendChild(e);
+  }
+  if (it.name && it.name.trim()) {
+    const nm = document.createElement('div');
+    nm.className = 'name';
+    nm.textContent = it.name;
+    cell.appendChild(nm);
+  }
+  return cell;
+}
+
+/* 제품명 길이에 따른 폰트 자동 축소 (오버플로우 방지) */
+function fitAllNames() {
+  document.querySelectorAll('#grid .name').forEach((el) => {
+    const cell = el.parentElement;
+    const maxW = cell.clientWidth;
+    let size = Math.max(20, Math.round(maxW * 0.085)); // 셀 너비 비례 시작값
+    const cap = 46, floor = 16;
+    size = Math.min(cap, size);
+    el.style.fontSize = size + 'px';
+    // 2줄(또는 \n 줄 수) 이내로 들어올 때까지 축소
+    let guard = 40;
+    while (guard-- > 0) {
+      const overflowW = el.scrollWidth > el.clientWidth + 1;
+      const tooTall = el.scrollHeight > size * 2.6; // 약 2줄 허용
+      if ((overflowW || tooTall) && size > floor) {
+        size -= 1;
+        el.style.fontSize = size + 'px';
+      } else break;
+    }
+  });
+}
+
+/* 입력 리스트(좌측 패널) */
+function renderItemList() {
+  const list = $('#itemList');
+  list.innerHTML = '';
+  state.items.forEach((it, i) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'item';
+
+    const thumb = document.createElement('img');
+    thumb.className = 'thumb';
+    if (it.src) thumb.src = it.src;
+    wrap.appendChild(thumb);
+
+    const grow = document.createElement('div');
+    grow.className = 'grow';
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.placeholder = '제품명 (줄바꿈은 \\n)';
+    inp.value = it.name || '';
+    inp.addEventListener('input', () => { it.name = inp.value.replace(/\\n/g, '\n'); renderGrid(); });
+    grow.appendChild(inp);
+    const hint = document.createElement('div');
+    hint.className = 'hint';
+    hint.textContent = `#${i + 1}`;
+    grow.appendChild(hint);
+    wrap.appendChild(grow);
+
+    const ctrl = document.createElement('div');
+    ctrl.className = 'ctrl';
+    const up = btn('▲', () => move(i, -1));
+    const dn = btn('▼', () => move(i, +1));
+    const del = btn('✕', () => { state.items.splice(i, 1); refresh(); });
+    del.classList.add('del');
+    ctrl.append(up, dn, del);
+    wrap.appendChild(ctrl);
+
+    list.appendChild(wrap);
+  });
+}
+
+function btn(label, fn) {
+  const b = document.createElement('button');
+  b.textContent = label;
+  b.addEventListener('click', fn);
+  return b;
+}
+
+function move(i, dir) {
+  const j = i + dir;
+  if (j < 0 || j >= state.items.length) return;
+  [state.items[i], state.items[j]] = [state.items[j], state.items[i]];
+  refresh();
+}
+
+function refresh() {
+  renderItemList();
+  renderGrid();
+}
+
+/* 헤더/푸터 텍스트 */
+function syncHeader() {
+  const month = $('#inMonth').value.trim();
+  const open = $('#inOpen').value.trim();
+  $('#outTitle').textContent = month ? `${month} 신제품 예고` : '신제품 예고';
+  $('#outOpen').textContent = open ? `${open} 오픈` : '';
+  $('#outStore').textContent = $('#inStore').value.trim();
+  requestAnimationFrame(fitAllNames);
+}
+
+/* =========================================================
+   업로드 처리
+========================================================= */
+function addFiles(files) {
+  const imgs = [...files].filter(f => f.type.startsWith('image/'));
+  let pending = imgs.length;
+  if (!pending) return;
+  imgs.forEach((f) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      // 업로드 시 자동 리사이징(긴 변 900px)으로 메모리/속도 최적화
+      resizeDataURL(e.target.result, 900, (resized) => {
+        state.items.push({ id: idSeq++, src: resized, name: '' });
+        if (--pending === 0) refresh();
+      });
+    };
+    reader.readAsDataURL(f);
+  });
+}
+
+function resizeDataURL(dataURL, maxSide, cb) {
+  const img = new Image();
+  img.onload = () => {
+    let { width, height } = img;
+    const scale = Math.min(1, maxSide / Math.max(width, height));
+    width = Math.round(width * scale);
+    height = Math.round(height * scale);
+    const c = document.createElement('canvas');
+    c.width = width; c.height = height;
+    c.getContext('2d').drawImage(img, 0, 0, width, height);
+    cb(c.toDataURL('image/jpeg', 0.9));
+  };
+  img.onerror = () => cb(dataURL);
+  img.src = dataURL;
+}
+
+function loadLogo(file, imgEl, fallbackEl) {
+  const r = new FileReader();
+  r.onload = (e) => {
+    imgEl.src = e.target.result;
+    imgEl.style.display = 'block';
+    fallbackEl.style.display = 'none';
+  };
+  r.readAsDataURL(file);
+}
+
+/* =========================================================
+   PNG 다운로드 (실제 1080px)
+========================================================= */
+async function downloadPNG() {
+  const poster = $('#poster');
+  if (state.items.length === 0) { toast('사진을 먼저 올려주세요'); return; }
+  if (typeof htmlToImage === 'undefined') {
+    toast('PNG 라이브러리를 불러오지 못했습니다 (최초 1회 인터넷 필요)');
+    return;
+  }
+  toast('이미지 생성 중…');
+  // 스케일 영향 제거: 포스터 자체는 1080px 고정이므로 그대로 캡처
+  try {
+    const dataUrl = await htmlToImage.toPng(poster, {
+      pixelRatio: 1,
+      width: 1080,
+      cacheBust: true,
+      backgroundColor: '#ffffff',
+    });
+    const a = document.createElement('a');
+    const m = $('#inMonth').value.trim().replace(/\s+/g, '');
+    a.download = `megahouse_${m || 'preview'}.png`;
+    a.href = dataUrl;
+    a.click();
+    toast('다운로드 완료');
+  } catch (err) {
+    console.error(err);
+    toast('생성 실패: ' + err.message);
+  }
+}
+
+/* =========================================================
+   프리뷰 스케일 (화면에 맞춰 축소)
+========================================================= */
+function fitScale() {
+  const stage = $('#stage');
+  const avail = stage.clientWidth - 80; // padding
+  const scale = Math.min(1, avail / 1080);
+  const scaler = $('#scaler');
+  scaler.style.transform = `scale(${scale})`;
+  // 스케일된 높이만큼 stage 스크롤 보정
+  const posterH = $('#poster').offsetHeight;
+  scaler.style.height = (posterH * scale) + 'px';
+}
+
+/* =========================================================
+   토스트
+========================================================= */
+let toastTimer;
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+/* =========================================================
+   이벤트 바인딩
+========================================================= */
+$('#drop').addEventListener('click', () => $('#fileInput').click());
+$('#fileInput').addEventListener('change', (e) => { addFiles(e.target.files); e.target.value = ''; });
+
+const drop = $('#drop');
+['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('drag'); }));
+['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('drag'); }));
+drop.addEventListener('drop', (e) => addFiles(e.dataTransfer.files));
+
+$('#inMonth').addEventListener('input', syncHeader);
+$('#inOpen').addEventListener('input', syncHeader);
+$('#inStore').addEventListener('input', syncHeader);
+
+$('#logoMega').addEventListener('change', (e) => e.target.files[0] && loadLogo(e.target.files[0], $('#megaLogoImg'), $('#megaLogoFallback')));
+$('#logoPW').addEventListener('change', (e) => e.target.files[0] && loadLogo(e.target.files[0], $('#pwLogoImg'), $('#pwLogoFallback')));
+
+$('#btnDownload').addEventListener('click', downloadPNG);
+$('#btnReset').addEventListener('click', () => {
+  if (!confirm('모두 초기화할까요?')) return;
+  state.items = [];
+  refresh();
+});
+
+window.addEventListener('resize', fitScale);
+new ResizeObserver(fitScale).observe($('#poster'));
+
+/* 로고 파일이 assets/에 있으면 자동 로드 (없으면 fallback 텍스트 유지) */
+(function tryLoadAssetLogos() {
+  const mega = new Image();
+  mega.onload = () => { const el = $('#megaLogoImg'); el.src = mega.src; el.style.display = 'block'; $('#megaLogoFallback').style.display = 'none'; };
+  mega.src = 'assets/megahouse-logo.png';
+  const pw = new Image();
+  pw.onload = () => { const el = $('#pwLogoImg'); el.src = pw.src; el.style.display = 'block'; $('#pwLogoFallback').style.display = 'none'; };
+  pw.src = 'assets/pw-logo.png';
+})();
+
+/* 초기 */
+syncHeader();
+renderGrid();
+fitScale();
+</script>
+</body>
+</html>
