@@ -161,6 +161,15 @@ details.logos summary{font-size:11px;color:var(--ui-sub);cursor:pointer;padding:
 .p-ft-logo-wrap{flex-shrink:0;display:flex;align-items:center;justify-content:flex-end;overflow:visible;}
 .p-ft-logo{height:32px;width:auto;display:block;transform-origin:right center;}
 
+/* 2-section panel toggles */
+.psec-toggle{width:100%;text-align:left;padding:10px 12px;border-radius:8px;border:none;
+  background:var(--ui-accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer;
+  font-family:inherit;display:flex;justify-content:space-between;align-items:center;margin-bottom:0;}
+.psec-toggle:hover{filter:brightness(1.1);}
+.psec-toggle .arrow{transition:transform .2s;display:inline-block;}
+.psec-toggle.collapsed .arrow{transform:rotate(-90deg);}
+.psec-body{overflow:hidden;transition:max-height .25s ease;max-height:2000px;}
+.psec-body.collapsed{max-height:0;}
 /* 토스트 */
 .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#252018;
   color:#fff;padding:9px 15px;border-radius:8px;font-size:12px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:99;}
@@ -174,103 +183,82 @@ details.logos summary{font-size:11px;color:var(--ui-sub);cursor:pointer;padding:
   <h1>메가하우스 신제품 예고 메이커</h1>
   <p class="desc">셀 위 드래그=위치 조정 · 스크롤=확대. 12장 초과 시 자동으로 2페이지.</p>
 
-  <div class="sec">헤더 설정</div>
-  <!-- 헤더 on/off + 여백 -->
-  <div class="row2" style="align-items:center">
-    <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;"><input type="checkbox" id="chkHeader" checked onchange="toggleHeader()"/> 헤더 표시</label>
-    <div class="field" style="margin:0"><label>헤더 꺼짐 여백</label><input type="range" id="headerPad" min="5" max="120" value="30" oninput="toggleHeader()"/></div>
-  </div>
-  <div class="row2" style="margin-top:6px">
-    <div class="field"><label>월</label><input type="text" id="inMonth" value="6월"/></div>
-    <div class="field"><label>오픈일 (노란색)</label><input type="text" id="inOpen" value="6/4"/></div>
-  </div>
-  <!-- 스토어명 텍스트 | 굵기 -->
-  <div class="row2">
-    <div class="field"><label>스토어명 텍스트</label><input type="text" id="inStore" value="메가하우스 공식 스토어"/></div>
-    <div class="field"><label>스토어명 굵기</label>
-      <select id="storeFontWeight" onchange="syncHeader()" style="width:100%;background:var(--ui-card);border:1px solid var(--ui-border);color:var(--ui-text);border-radius:6px;padding:6px 8px;font-size:12px;font-family:inherit;">
-        <option value="100">1 — Thin</option>
-        <option value="200">2 — ExtraLight</option>
-        <option value="300">3 — Light</option>
-        <option value="400">4 — Regular</option>
-        <option value="500" selected>5 — Medium</option>
-        <option value="600">6 — SemiBold</option>
-        <option value="700">7 — Bold</option>
-        <option value="800">8 — ExtraBold</option>
-      </select>
+  <!-- ══ 섹션 1: 레이아웃 수정 ══ -->
+  <button class="psec-toggle" onclick="toggleSection('sec-layout',this)">레이아웃 수정 <span class="arrow">▾</span></button>
+  <div class="psec-body" id="sec-layout" style="padding-top:10px">
+    <div class="sec">헤더</div>
+    <div class="row2" style="align-items:center">
+      <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;"><input type="checkbox" id="chkHeader" checked onchange="toggleHeader()"/> 헤더 표시</label>
+      <div class="field" style="margin:0"><label>꺼짐 여백</label><input type="range" id="headerPad" min="5" max="120" value="30" oninput="toggleHeader()"/></div>
     </div>
-  </div>
-  <!-- 스토어명 크기 | 타이틀 크기 | 스토어 위치 -->
-  <div class="row2">
-    <div class="field"><label>스토어명 크기</label><input type="range" id="storeFontSize" min="14" max="40" value="22" oninput="syncHeader()"/></div>
-    <div class="field"><label>타이틀 크기</label><input type="range" id="titleFontSize" min="40" max="120" value="92" oninput="syncHeader()"/></div>
-    <div class="field"><label>스토어명 위치</label><input type="range" id="storeOffset" min="-400" max="400" value="0" oninput="syncHeader()"/></div>
-  </div>
-  <!-- 재판 배지 색상 -->
-  <div class="sec">재판 배지 색상</div>
-  <div class="row2">
-    <div class="field"><label>배경색</label><input type="text" id="badgeBg" value="#0d1580" placeholder="#0d1580" oninput="syncBadgeStyle()"/></div>
-    <div class="field"><label>글자색</label><input type="text" id="badgeFg" value="#ffffff" placeholder="#ffffff" oninput="syncBadgeStyle()"/></div>
-  </div>
-  <!-- 푸터 텍스트 | 좌우위치 -->
-  <div class="row2">
-    <div class="field"><label>푸터 텍스트</label><input type="text" id="inFooter" value="국내외 사정에 따라 출시 시점 등 일부 사항이 변동될 수 있습니다."/></div>
-    <div class="field"><label>푸터 위치</label><input type="range" id="footerOffset" min="-400" max="400" value="0" oninput="syncHeader()"/></div>
-  </div>
-  <div class="row2">
-    <div class="field"><label>푸터 크기</label><input type="range" id="footerFontSize" min="10" max="28" value="18" oninput="syncHeader()"/></div>
-    <div class="field"><label>상단 로고 크기</label><input type="range" id="logoSize" min="32" max="120" value="64" oninput="syncLogoSize()"/></div>
-    <div class="field"><label>하단 PW 로고 크기</label><input type="range" id="pwLogoSize" min="16" max="100" value="32" oninput="syncLogoSize()"/></div>
+    <div class="row2" style="margin-top:6px">
+      <div class="field"><label>월</label><input type="text" id="inMonth" value="6월"/></div>
+      <div class="field"><label>오픈일 (노란색)</label><input type="text" id="inOpen" value="6/4"/></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>스토어명 텍스트</label><input type="text" id="inStore" value="메가하우스 공식 스토어"/></div>
+      <div class="field"><label>굵기</label>
+        <select id="storeFontWeight" onchange="syncHeader()" style="width:100%;background:var(--ui-card);border:1px solid var(--ui-border);color:var(--ui-text);border-radius:6px;padding:6px 8px;font-size:12px;font-family:inherit;">
+          <option value="100">1—Thin</option><option value="200">2—ExtraLight</option><option value="300">3—Light</option>
+          <option value="400">4—Regular</option><option value="500" selected>5—Medium</option><option value="600">6—SemiBold</option>
+          <option value="700">7—Bold</option><option value="800">8—ExtraBold</option>
+        </select>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>스토어명 크기</label><input type="range" id="storeFontSize" min="14" max="40" value="22" oninput="syncHeader()"/></div>
+      <div class="field"><label>타이틀 크기</label><input type="range" id="titleFontSize" min="40" max="120" value="92" oninput="syncHeader()"/></div>
+      <div class="field"><label>스토어명 위치</label><input type="range" id="storeOffset" min="-400" max="400" value="0" oninput="syncHeader()"/></div>
+    </div>
+    <div class="sec">재판 배지</div>
+    <div class="row2">
+      <div class="field"><label>배경색</label><input type="text" id="badgeBg" value="#0d1580" placeholder="#0d1580" oninput="syncBadgeStyle()"/></div>
+      <div class="field"><label>글자색</label><input type="text" id="badgeFg" value="#ffffff" placeholder="#ffffff" oninput="syncBadgeStyle()"/></div>
+    </div>
+    <div class="sec">푸터</div>
+    <div class="row2">
+      <div class="field"><label>푸터 텍스트</label><input type="text" id="inFooter" value="국내외 사정에 따라 출시 시점 등 일부 사항이 변동될 수 있습니다."/></div>
+      <div class="field"><label>푸터 위치</label><input type="range" id="footerOffset" min="-400" max="400" value="0" oninput="syncHeader()"/></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>푸터 크기</label><input type="range" id="footerFontSize" min="10" max="28" value="18" oninput="syncHeader()"/></div>
+      <div class="field"><label>상단 로고 크기</label><input type="range" id="logoSize" min="32" max="120" value="64" oninput="syncLogoSize()"/></div>
+      <div class="field"><label>하단 PW 로고</label><input type="range" id="pwLogoSize" min="16" max="100" value="32" oninput="syncLogoSize()"/></div>
+    </div>
+    <div class="sec">그라데이션</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">
+      <div class="field" style="text-align:center"><label>시작점<br/><span id="gradValS" style="font-size:10px">20%</span></label><input type="range" id="gradStart" min="0" max="90" value="20" step="1" oninput="syncGrad()"/></div>
+      <div class="field" style="text-align:center"><label>퍼짐<br/><span id="gradValW" style="font-size:10px">30%</span></label><input type="range" id="gradWidth" min="5" max="200" value="30" step="1" oninput="syncGrad()"/></div>
+      <div class="field" style="text-align:center"><label>농도<br/><span id="gradValO" style="font-size:10px">88%</span></label><input type="range" id="gradOpacity" min="0" max="200" value="88" step="1" oninput="syncGrad()"/></div>
+      <div class="field" style="text-align:center"><label>압축<br/><span id="gradValC" style="font-size:10px">0%</span></label><input type="range" id="gradCompress" min="0" max="60" value="0" step="1" oninput="syncGrad()"/></div>
+    </div>
+    <details class="logos" style="margin-top:8px">
+      <summary>로고 직접 교체</summary>
+      <div class="field" style="margin-top:7px"><label>메가하우스 로고</label><input type="file" id="logoMega" accept="image/*"/></div>
+      <div class="field"><label>PW: 로고</label><input type="file" id="logoPW" accept="image/*"/></div>
+    </details>
   </div>
 
-  <details style="margin-bottom:4px">
-    <summary style="font-size:11px;font-weight:700;color:var(--ui-sub);cursor:pointer;padding:6px 0;border-bottom:1px solid var(--ui-border);letter-spacing:.4px;text-transform:uppercase;">줄별 제품명 크기</summary>
-    <div id="rowControls" style="margin-top:8px"><div style="font-size:11px;color:var(--ui-sub)">사진을 올리면 표시됩니다.</div></div>
-  </details>
-
-  <div class="sec">사진 업로드</div>
-  <div class="ptabs">
-    <button class="ptab on" id="tab1" onclick="switchTab(1)">1페이지 <span id="tab1cnt">(0)</span></button>
-    <button class="ptab" id="tab2" onclick="switchTab(2)">2페이지 <span id="tab2cnt">(0)</span></button>
+  <!-- ══ 섹션 2: 사진 수정 ══ -->
+  <button class="psec-toggle" onclick="toggleSection('sec-photo',this)" style="margin-top:8px">사진 수정 <span class="arrow">▾</span></button>
+  <div class="psec-body" id="sec-photo" style="padding-top:10px">
+    <div class="sec">사진 업로드</div>
+    <div class="ptabs">
+      <button class="ptab on" id="tab1" onclick="switchTab(1)">1페이지 <span id="tab1cnt">(0)</span></button>
+      <button class="ptab" id="tab2" onclick="switchTab(2)">2페이지 <span id="tab2cnt">(0)</span></button>
+    </div>
+    <div class="dropzone" id="drop"><b>클릭</b>하거나 사진을 <b>드래그</b> (페이지당 최대 12장)</div>
+    <input type="file" id="fileInput" accept="image/*" multiple hidden/>
+    <div class="items" id="itemList"></div>
+    <div class="sec">제품명 일괄입력</div>
+    <div class="field">
+      <label>줄마다 한 제품명 → 순서대로 반영 (현재 페이지 기준)</label>
+      <textarea id="bulkInput" placeholder="주술회전&#10;귀멸의 칼날&#10;원피스&#10;(빈 줄 = 해당 칸 비움)"></textarea>
+    </div>
+    <button class="ghost" style="width:100%;margin-bottom:4px" id="btnApplyBulk">적용</button>
+    <div class="sec">줄별 제품명 크기</div>
+    <div id="rowControls"><div style="font-size:11px;color:var(--ui-sub)">사진을 올리면 표시됩니다.</div></div>
   </div>
-  <div class="dropzone" id="drop"><b>클릭</b>하거나 사진을 <b>드래그</b> (페이지당 최대 12장)</div>
-  <input type="file" id="fileInput" accept="image/*" multiple hidden/>
-  <div class="items" id="itemList"></div>
-
-  <div class="sec">제품명 일괄입력</div>
-  <div class="field">
-    <label>줄마다 한 제품명 → 순서대로 반영 (현재 페이지 기준)</label>
-    <textarea id="bulkInput" placeholder="주술회전&#10;귀멸의 칼날&#10;원피스&#10;(빈 줄 = 해당 칸 비움)"></textarea>
-  </div>
-  <button class="ghost" style="width:100%;margin-bottom:4px" id="btnApplyBulk">적용</button>
-
-  <details>
-  <summary style="font-size:11px;font-weight:700;color:var(--ui-sub);cursor:pointer;padding:6px 0;border-bottom:1px solid var(--ui-border);letter-spacing:.4px;text-transform:uppercase;margin-bottom:6px;">그라데이션</summary>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:6px;">
-    <div class="field" style="text-align:center">
-      <label>시작점<br/><span id="gradValS" style="font-size:10px">20%</span></label>
-      <input type="range" id="gradStart" min="0" max="90" value="20" step="1" oninput="syncGrad()"/>
-    </div>
-    <div class="field" style="text-align:center">
-      <label>퍼짐<br/><span id="gradValW" style="font-size:10px">30%</span></label>
-      <input type="range" id="gradWidth" min="5" max="200" value="30" step="1" oninput="syncGrad()"/>
-    </div>
-    <div class="field" style="text-align:center">
-      <label>농도<br/><span id="gradValO" style="font-size:10px">88%</span></label>
-      <input type="range" id="gradOpacity" min="0" max="200" value="88" step="1" oninput="syncGrad()"/>
-    </div>
-    <div class="field" style="text-align:center">
-      <label>압축<br/><span id="gradValC" style="font-size:10px">0%</span></label>
-      <input type="range" id="gradCompress" min="0" max="60" value="0" step="1" oninput="syncGrad()"/>
-    </div>
-  </div>
-  </details>
-
-  <details class="logos">
-    <summary>로고 직접 교체</summary>
-    <div class="field" style="margin-top:7px"><label>메가하우스 로고</label><input type="file" id="logoMega" accept="image/*"/></div>
-    <div class="field"><label>PW: 로고</label><input type="file" id="logoPW" accept="image/*"/></div>
-  </details>
 
   <div class="actions">
     <button class="ghost" id="btnReset">초기화</button>
@@ -475,6 +463,8 @@ function bindCellInteraction(cell, img, it) {
   let dragging = false, sx = 0, sy = 0, sox = 0, soy = 0;
 
   cell.addEventListener('mousedown', e => {
+    // don't intercept clicks on name-text (for contenteditable)
+    if (e.target.classList.contains('name-text') || e.target.classList.contains('reprint-badge')) return;
     e.preventDefault();
     dragging = true;
     sx = e.clientX; sy = e.clientY;
@@ -488,8 +478,15 @@ function bindCellInteraction(cell, img, it) {
     it.ox = sox + dx; it.oy = soy + dy;
     applyImgTransform(img, it);
   });
-  window.addEventListener('mouseup', () => {
-    if (dragging) { dragging = false; cell.classList.remove('editing'); }
+  window.addEventListener('mouseup', e => {
+    if (!dragging) return;
+    const moved = Math.abs(e.clientX-sx)+Math.abs(e.clientY-sy);
+    dragging = false; cell.classList.remove('editing');
+    // click (no drag) → activate name text editing
+    if (moved < 6) {
+      const span = cell.querySelector('.name-text');
+      if (span) { span.contentEditable='true'; span.focus(); }
+    }
   });
 
   cell.addEventListener('wheel', e => {
@@ -535,6 +532,8 @@ function applyRowFontSizes(pg) {
     const sz = (rowFontSizes[pg-1] || [])[ri] || 36;
     row.querySelectorAll('.name').forEach(nm => {
       nm.style.fontSize = sz + 'px';
+      // also set on inner span to be safe
+      nm.querySelectorAll('.name-text').forEach(s => s.style.fontSize = sz + 'px');
     });
   });
 }
@@ -739,6 +738,11 @@ function syncHeader() {
     const fo = $('#footerOffset') ? +$('#footerOffset').value : 0;
     if (fn) { fn.textContent = ft; fn.style.fontSize = fSize; fn.style.transform = `translateX(${fo}px)`; }
   });
+}
+function toggleSection(id, btn) {
+  const body = document.getElementById(id);
+  const collapsed = body.classList.toggle('collapsed');
+  btn.classList.toggle('collapsed', collapsed);
 }
 function toggleHeader() {
   const on = $('#chkHeader').checked;
