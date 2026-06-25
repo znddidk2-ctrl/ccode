@@ -178,9 +178,7 @@ details.logos summary{font-size:11px;color:var(--ui-sub);cursor:pointer;padding:
   background:rgba(0,0,0,.45);color:#fff;font-size:13px;cursor:grab;
   opacity:0;transition:opacity .15s;user-select:none;}
 .cell:hover .cell-drag-handle{opacity:1;}
-.cell.drag-over-preview{outline:3px solid #4c8dff;outline-offset:-3px;}
-.blur-overlay{position:absolute;inset:0;background:rgba(255,255,255,.35);pointer-events:none;}
-</style>
+.cell.drag-over-preview{outline:3px solid #4c8dff;outline-offset:-3px;}</style>
 </head>
 <body>
 
@@ -433,9 +431,15 @@ function makeCell(it, ri, pg) {
     img.src = it.src;
     img.draggable = false;
     applyImgTransform(img, it);
-    if (it.blur) img.style.filter = `blur(${blurPx}px) brightness(${blurBright}%)`;
+    if (it.blur) {
+      const bgImg = document.createElement('img');
+      bgImg.src = it.src;
+      bgImg.draggable = false;
+      bgImg.className = 'blur-bg';
+      bgImg.style.cssText = `position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none;user-select:none;filter:blur(${blurPx}px) brightness(${blurBright}%);transform:scale(1.1);`;
+      ci.insertBefore(bgImg, ci.firstChild);
+    }
     ci.appendChild(img);
-    if (it.blur) { const ov = document.createElement('div'); ov.className = 'blur-overlay'; ci.appendChild(ov); }
     bindCellInteraction(cell, img, it);
     // Auto fit-to-width for fresh items (scale not yet adjusted by user)
     if (!it._fitted) {
