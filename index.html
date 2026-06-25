@@ -152,7 +152,7 @@ details.logos summary{font-size:11px;color:var(--ui-sub);cursor:pointer;padding:
   text-shadow:1px 2px 6px rgba(0,0,0,.55),0 1px 3px rgba(0,0,0,.4);
   background:linear-gradient(to bottom,transparent 0%,rgba(0,0,0,0) 20%,rgba(0,0,0,.65) 50%,rgba(0,0,0,.88) 100%);
 }
-.cell .name .name-text{white-space:pre-line;}
+.cell .name .name-text{white-space:normal;}
 .cell.editing{outline:2px solid #4c8dff;outline-offset:-2px;}
 
 /* 푸터 */
@@ -422,12 +422,17 @@ function makeCell(it, ri, pg) {
     const txtSpan = document.createElement('span');
     txtSpan.className = 'name-text';
     txtSpan.dataset.id = it.id;
-    txtSpan.textContent = it.name || '';
+    // \n → <br> 로 렌더: white-space:pre-line 대신 명시적 <br> 사용 (export 호환)
+    function setNameHtml(span, name) {
+      span.innerHTML = (name||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+    }
+    setNameHtml(txtSpan, it.name);
     txtSpan.addEventListener('click', e => {
       e.stopPropagation();
+      // contenteditable 전환 시 <br> → \n 로 표시
+      txtSpan.textContent = it.name || '';
       txtSpan.contentEditable = 'true';
       txtSpan.focus();
-      // select all
       const sel = window.getSelection(); const range = document.createRange();
       range.selectNodeContents(txtSpan); sel.removeAllRanges(); sel.addRange(range);
     });
@@ -435,14 +440,14 @@ function makeCell(it, ri, pg) {
       txtSpan.contentEditable = 'false';
       const newName = txtSpan.textContent;
       it.name = newName;
-      // sync panel input
+      setNameHtml(txtSpan, newName);
       const panelInp = document.querySelector(`input[data-item-id="${it.id}"]`);
       if (panelInp) panelInp.value = newName.replace(/\n/g,'\\n');
       renderGrid(+txtSpan.closest('.cell').dataset.pg);
     });
     txtSpan.addEventListener('keydown', e => {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); txtSpan.blur(); }
-      if (e.key === 'Escape') { txtSpan.textContent = it.name || ''; txtSpan.blur(); }
+      if (e.key === 'Escape') { it.name = it.name||''; setNameHtml(txtSpan, it.name); txtSpan.contentEditable='false'; }
     });
     nm.appendChild(txtSpan);
     if (it.reprint) {
@@ -623,7 +628,9 @@ function makeItemRow(it, i, pg) {
     renderGrid(pg);
     // sync any open cell editor
     const span = document.querySelector(`.name-text[data-id="${it.id}"]`);
-    if (span && document.activeElement !== span) span.textContent = it.name || '';
+    if (span && document.activeElement !== span) {
+      span.innerHTML = (it.name||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+    }
   });
   const rpWrap = document.createElement('label');
   rpWrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;cursor:pointer;height:100%;justify-content:center;';
@@ -888,22 +895,6 @@ async function downloadPNG() {
   if (!toDownload.length) { toast('사진을 먼저 올려주세요'); return; }
   toast('이미지 생성 중…');
 
-  // 줄바꿈 보정: white-space:pre-line + textContent \n → html-to-image에서 깨지는 문제 수정
-  // 캡처 전에 \n → <br> 변환, 후 복원
-  function fixNewlinesForExport(poster) {
-    const spans = poster.querySelectorAll('.name-text');
-    const backups = [];
-    spans.forEach(sp => {
-      backups.push({el:sp, html:sp.innerHTML, ws:sp.style.whiteSpace});
-      sp.innerHTML = sp.textContent.replace(/\n/g, '<br>');
-      sp.style.whiteSpace = 'normal';
-    });
-    return backups;
-  }
-  function restoreNewlines(backups) {
-    backups.forEach(({el, html, ws}) => { el.innerHTML = html; el.style.whiteSpace = ws; });
-  }
-
   // 폰트 임베드 (html-to-image 폰트 미로드 버그 방지)
   let fontEmbedCSS = '';
   try { fontEmbedCSS = await htmlToImage.getFontEmbedCSS($('#poster1')); } catch(e) {}
@@ -911,15 +902,13 @@ async function downloadPNG() {
   const opts = {pixelRatio:1, width:1080, height:1350, cacheBust:false, backgroundColor:'#fff', fontEmbedCSS};
 
   for (const {el, name} of toDownload) {
-    const backups = fixNewlinesForExport(el);
     try {
-      // html-to-image 첫 번째 호출은 폰트 캐싱용 (결과 버림), 두 번째가 실제 렌더
+      // 첫 번째 호출은 폰트 캐싱용, 두 번째가 실제 렌더
       await htmlToImage.toPng(el, opts).catch(()=>{});
       const dataUrl = await htmlToImage.toPng(el, opts);
-      restoreNewlines(backups);
       const a = document.createElement('a'); a.download = name + '.png'; a.href = dataUrl; a.click();
       await new Promise(r => setTimeout(r, 500));
-    } catch(err) { restoreNewlines(backups); toast('생성 실패: '+err.message); return; }
+    } catch(err) { toast('생성 실패: '+err.message); return; }
   }
   toast('다운로드 완료!');
 }
