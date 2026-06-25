@@ -191,6 +191,8 @@ details.logos summary{font-size:11px;color:var(--ui-sub);cursor:pointer;padding:
   opacity:0;transition:opacity .15s;user-select:none;}
 .cell:hover .cell-drag-handle{opacity:1;}
 .cell.drag-over-preview{outline:3px solid #4c8dff;outline-offset:-3px;}
+.toggle-btn{display:flex;align-items:center;justify-content:center;padding:4px 8px;border-radius:20px;border:1.5px solid var(--ui-border);background:var(--ui-card);color:var(--ui-sub);font-size:11px;cursor:pointer;user-select:none;transition:background .15s,color .15s,border-color .15s;white-space:nowrap;font-family:inherit;font-weight:500;height:28px;flex-shrink:0;}
+.toggle-btn.active{background:var(--ui-accent);color:#fff;border-color:var(--ui-accent);}
 
 /* 줌 바 */
 .zoom-bar{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:10px;
@@ -217,7 +219,7 @@ details.logos summary{font-size:11px;color:var(--ui-sub);cursor:pointer;padding:
   <div class="psec-body" id="sec-layout" style="padding-top:10px">
     <div class="sec">헤더</div>
     <div class="row2" style="align-items:center">
-      <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;"><input type="checkbox" id="chkHeader" checked onchange="toggleHeader()"/> 헤더 표시</label>
+      <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;"><input type="checkbox" id="chkHeader" onchange="toggleHeader()"/> 헤더 표시</label>
       <div class="field" style="margin:0"><label>꺼짐 여백</label><input type="range" id="headerPad" min="5" max="120" value="30" oninput="toggleHeader()"/></div>
     </div>
     <div class="row2" style="margin-top:6px">
@@ -252,7 +254,7 @@ details.logos summary{font-size:11px;color:var(--ui-sub);cursor:pointer;padding:
     <div class="row2">
       <div class="field"><label>푸터 크기</label><input type="range" id="footerFontSize" min="10" max="28" value="18" oninput="syncHeader()"/></div>
       <div class="field"><label>상단 로고 크기</label><input type="range" id="logoSize" min="32" max="120" value="64" oninput="syncLogoSize()"/></div>
-      <div class="field"><label>하단 PW 로고</label><input type="range" id="pwLogoSize" min="16" max="100" value="32" oninput="syncLogoSize()"/></div>
+      <div class="field"><label>하단 PW 로고</label><input type="range" id="pwLogoSize" min="16" max="200" value="32" oninput="syncLogoSize()"/></div>
     </div>
     <div class="sec">그라데이션</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">
@@ -345,7 +347,7 @@ function createBoard(canvasIdx) {
   return {
     id,
     canvasIdx,
-    items: Array.from({length: n}, () => ({id: idSeq++, src: null, name: '', scale: 1, ox: 0, oy: 0}))
+    items: Array.from({length: n}, () => ({id: idSeq++, src: null, name: '', scale: 1, ox: 0, oy: 0, blur: true}))
   };
 }
 
@@ -478,8 +480,7 @@ function setBoardCanvas(boardId, canvasIdx) {
   board.canvasIdx = canvasIdx;
   const preset = CANVAS_PRESETS[canvasIdx];
   const n = preset.rows.reduce((a,b)=>a+b,0);
-  while (board.items.length < n) board.items.push({id: idSeq++, src:null, name:'', scale:1, ox:0, oy:0});
-  board.items = board.items.slice(0, n);
+  while (board.items.length < n) board.items.push({id: idSeq++, src:null, name:'', scale:1, ox:0, oy:0, blur:true});
   const poster = document.getElementById('poster-' + boardId);
   if (poster) { poster.style.width = preset.w+'px'; poster.style.height = preset.h+'px'; }
   renderGrid(boardId);
@@ -851,37 +852,11 @@ function makeItemRow(it, i, boardId) {
   const grow = document.createElement('div'); grow.className = 'grow';
   const inpRow = document.createElement('div');
   inpRow.style.cssText = 'display:flex;align-items:center;gap:6px;height:44px;';
-  const rpWrap = document.createElement('label');
-  rpWrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;cursor:pointer;height:100%;justify-content:center;';
-  const chk = document.createElement('input'); chk.type='checkbox'; chk.checked=!!it.reprint;
-  chk.style.cssText = 'width:14px;height:14px;accent-color:var(--ui-accent);cursor:pointer;';
-  chk.addEventListener('change', ()=>{ it.reprint=chk.checked; renderGrid(boardId); });
-  const rpLbl = document.createElement('span');
-  rpLbl.style.cssText = 'font-size:9px;color:var(--ui-sub);line-height:1;';
-  rpLbl.textContent = '재판';
-  rpWrap.append(chk, rpLbl);
+  const rpBtn = makeToggleBtn('재판', !!it.reprint, v => { it.reprint = v; renderGrid(boardId); });
+  const blurBtn = makeToggleBtn('블러', !!it.blur, v => { it.blur = v; refresh(); });
+  const wbBtn = makeToggleBtn('흰배경', !!it.whiteBg, v => { it.whiteBg = v; refresh(); });
 
-  const blurWrap = document.createElement('label');
-  blurWrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;cursor:pointer;height:100%;justify-content:center;';
-  const blurChk = document.createElement('input'); blurChk.type='checkbox'; blurChk.checked=!!it.blur;
-  blurChk.style.cssText = 'width:14px;height:14px;accent-color:var(--ui-accent);cursor:pointer;';
-  blurChk.addEventListener('change', ()=>{ it.blur=blurChk.checked; refresh(); });
-  const blurLbl = document.createElement('span');
-  blurLbl.style.cssText = 'font-size:9px;color:var(--ui-sub);line-height:1;';
-  blurLbl.textContent = '블러';
-  blurWrap.append(blurChk, blurLbl);
-
-  const wbWrap = document.createElement('label');
-  wbWrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;cursor:pointer;height:100%;justify-content:center;';
-  const wbChk = document.createElement('input'); wbChk.type='checkbox'; wbChk.checked=!!it.whiteBg;
-  wbChk.style.cssText = 'width:14px;height:14px;accent-color:var(--ui-accent);cursor:pointer;';
-  wbChk.addEventListener('change', ()=>{ it.whiteBg=wbChk.checked; refresh(); });
-  const wbLbl = document.createElement('span');
-  wbLbl.style.cssText = 'font-size:9px;color:var(--ui-sub);line-height:1;';
-  wbLbl.textContent = '흰배경';
-  wbWrap.append(wbChk, wbLbl);
-
-  inpRow.append(rpWrap, blurWrap, wbWrap);
+  inpRow.append(rpBtn, blurBtn, wbBtn);
   grow.appendChild(inpRow);
   wrap.appendChild(grow);
 
@@ -923,13 +898,27 @@ function renderItemList() {
   list.innerHTML = '';
   const board = boards.find(b => b.id === curBoardId);
   if (!board) return;
-  board.items.forEach((it, i) => list.appendChild(makeItemRow(it, i, curBoardId)));
+  const preset = CANVAS_PRESETS[board.canvasIdx];
+  const n = preset.rows.reduce((a,b)=>a+b,0);
+  board.items.slice(0, n).forEach((it, i) => list.appendChild(makeItemRow(it, i, curBoardId)));
   renderBoardTabs();
 }
 
 function mkbtn(t, fn) {
   const b = document.createElement('button'); b.textContent = t;
   b.addEventListener('click', fn); return b;
+}
+
+function makeToggleBtn(label, active, onChange) {
+  const btn = document.createElement('button');
+  btn.className = 'toggle-btn' + (active ? ' active' : '');
+  btn.textContent = label;
+  btn.addEventListener('click', () => {
+    const newVal = !btn.classList.contains('active');
+    btn.classList.toggle('active', newVal);
+    onChange(newVal);
+  });
+  return btn;
 }
 
 /* ═══════════════════════════════════════
@@ -1081,7 +1070,9 @@ function addFiles(files) {
   const board = boards.find(b => b.id === curBoardId);
   if (!board) return;
   const imgs = [...files].filter(f => f.type.startsWith('image/'));
-  const emptySlots = board.items.reduce((acc, it, i) => { if (!it.src) acc.push(i); return acc; }, []);
+  const preset = CANVAS_PRESETS[board.canvasIdx];
+  const n = preset.rows.reduce((a,b)=>a+b,0);
+  const emptySlots = board.items.slice(0, n).reduce((acc, it, i) => { if (!it.src) acc.push(i); return acc; }, []);
   const toFill = imgs.slice(0, emptySlots.length);
   const overflow = imgs.slice(emptySlots.length);
   if (overflow.length) toast(`빈 슬롯 없음 — ${overflow.length}장 추가 안됨. 보드를 추가하거나 기존 사진을 지우세요.`);
@@ -1091,7 +1082,7 @@ function addFiles(files) {
     const slotIdx = emptySlots[fi];
     const r = new FileReader();
     r.onload = e => resizeDataURL(e.target.result, 1200, src => {
-      board.items[slotIdx] = { id: board.items[slotIdx].id, src, name: board.items[slotIdx].name, scale: 1, ox: 0, oy: 0 };
+      board.items[slotIdx] = { ...board.items[slotIdx], src, scale: 1, ox: 0, oy: 0 };
       if (--pending === 0) refresh();
     });
     r.readAsDataURL(f);
@@ -1329,7 +1320,7 @@ function loadState() {
     if (st.badgeBg && $('#badgeBg')) $('#badgeBg').value = st.badgeBg;
     if (st.badgeFg && $('#badgeFg')) $('#badgeFg').value = st.badgeFg;
     if (st.headerPad && $('#headerPad')) $('#headerPad').value = st.headerPad;
-    if (st.headerOn === false && $('#chkHeader')) { $('#chkHeader').checked = false; }
+    if (st.headerOn != null && $('#chkHeader')) { $('#chkHeader').checked = !!st.headerOn; }
     if (st.blurPx != null) { blurPx = st.blurPx; const sl=$('#sliderBlurPx'); if(sl){sl.value=blurPx;} const lbl=$('#blurPxVal'); if(lbl) lbl.textContent=blurPx; }
     if (st.blurBright != null) { blurBright = st.blurBright; const sl=$('#sliderBlurBright'); if(sl){sl.value=blurBright;} const lbl=$('#blurBrightVal'); if(lbl) lbl.textContent=blurBright; }
   } catch(e) {}
