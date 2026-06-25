@@ -185,9 +185,9 @@ details.logos summary{font-size:11px;color:var(--ui-sub);cursor:pointer;padding:
 .p-ft-logo-wrap{flex-shrink:0;display:flex;align-items:center;justify-content:flex-end;overflow:visible;}
 .p-ft-logo{height:32px;width:auto;display:block;transform-origin:right center;}
 
-.cell-drag-handle{position:absolute;top:6px;right:6px;z-index:5;width:22px;height:22px;
-  display:flex;align-items:center;justify-content:center;border-radius:5px;
-  background:rgba(0,0,0,.45);color:#fff;font-size:13px;cursor:grab;
+.cell-drag-handle{position:absolute;top:2%;right:2%;z-index:5;width:6%;aspect-ratio:1;
+  display:flex;align-items:center;justify-content:center;border-radius:8px;
+  background:rgba(0,0,0,.45);color:#fff;font-size:36px;cursor:grab;
   opacity:0;transition:opacity .15s;user-select:none;}
 .cell:hover .cell-drag-handle{opacity:1;}
 .cell.drag-over-preview{outline:3px solid #4c8dff;outline-offset:-3px;}
@@ -386,10 +386,15 @@ function makeBoardEl(board, boardNum) {
   hdr.appendChild(delBtn);
   outer.appendChild(hdr);
 
-  // Scaler
+  // Scaler wrap — takes up exact visual (scaled) size in layout
+  const scWrap = document.createElement('div');
+  scWrap.id = 'sc-wrap-' + board.id;
+  scWrap.style.cssText = 'position:relative;flex-shrink:0;';
+
   const sc = document.createElement('div');
   sc.className = 'scaler';
   sc.id = 'sc-' + board.id;
+  sc.style.cssText = 'transform-origin:top left;position:absolute;top:0;left:0;';
 
   // Poster
   const poster = document.createElement('div');
@@ -425,7 +430,8 @@ function makeBoardEl(board, boardNum) {
   poster.appendChild(pft);
 
   sc.appendChild(poster);
-  outer.appendChild(sc);
+  scWrap.appendChild(sc);
+  outer.appendChild(scWrap);
   return outer;
 }
 
@@ -1124,10 +1130,14 @@ function applyPreviewZoom(pct) {
     const autoScale = Math.min(1, stageH / preset.h);
     const scale = autoScale * (pct / 50);
     const scEl = document.getElementById('sc-' + board.id);
-    if (!scEl) return;
+    const wrapEl = document.getElementById('sc-wrap-' + board.id);
+    if (!scEl || !wrapEl) return;
     scEl.style.transform = `scale(${scale})`;
     scEl.style.width = preset.w + 'px';
-    scEl.style.height = (preset.h * scale) + 'px';
+    scEl.style.height = preset.h + 'px';
+    // wrap takes the visual (scaled) size so boards sit side-by-side correctly
+    wrapEl.style.width = Math.round(preset.w * scale) + 'px';
+    wrapEl.style.height = Math.round(preset.h * scale) + 'px';
   });
 }
 
