@@ -173,6 +173,13 @@ details.logos summary{font-size:11px;color:var(--ui-sub);cursor:pointer;padding:
 .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#252018;
   color:#fff;padding:9px 15px;border-radius:8px;font-size:12px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:99;}
 .toast.show{opacity:1;}
+.cell-drag-handle{position:absolute;top:6px;right:6px;z-index:5;width:22px;height:22px;
+  display:flex;align-items:center;justify-content:center;border-radius:5px;
+  background:rgba(0,0,0,.45);color:#fff;font-size:13px;cursor:grab;
+  opacity:0;transition:opacity .15s;user-select:none;}
+.cell:hover .cell-drag-handle{opacity:1;}
+.cell.drag-over-preview{outline:3px solid #4c8dff;outline-offset:-3px;}
+.blur-overlay{position:absolute;inset:0;background:rgba(255,255,255,.35);pointer-events:none;}
 </style>
 </head>
 <body>
@@ -257,6 +264,11 @@ details.logos summary{font-size:11px;color:var(--ui-sub);cursor:pointer;padding:
     <button class="ghost" style="width:100%;margin-bottom:4px" id="btnApplyBulk">적용</button>
     <div class="sec">줄별 제품명 크기</div>
     <div id="rowControls"><div style="font-size:11px;color:var(--ui-sub)">사진을 올리면 표시됩니다.</div></div>
+    <div class="sec">블러 설정 (블러 체크된 셀에 적용)</div>
+    <div class="row2">
+      <div class="field"><label>퍼짐 <span id="blurPxVal">10</span>px</label><input type="range" id="sliderBlurPx" min="0" max="30" value="10" oninput="blurPx=+this.value;document.getElementById('blurPxVal').textContent=this.value;refresh()"/></div>
+      <div class="field"><label>밝기 <span id="blurBrightVal">80</span>%</label><input type="range" id="sliderBlurBright" min="50" max="120" value="80" oninput="blurBright=+this.value;document.getElementById('blurBrightVal').textContent=this.value;refresh()"/></div>
+    </div>
   </div>
 
   <div class="actions">
@@ -332,6 +344,9 @@ let curPage = 1;
 let idSeq = 1;
 let rowFontSizes = [[36,36,36,36],[36,36,36,36]]; // [page][row]
 let firstRowFlex = [null, null]; // first row flex override per page
+let blurPx = 10;
+let blurBright = 80;
+let dragSrc = null;
 const $ = s => document.querySelector(s);
 
 /* ═══════════════════════════════════════
@@ -375,6 +390,40 @@ function makeCell(it, ri, pg) {
   cell.className = 'cell';
   cell.dataset.id = it.id;
   cell.dataset.pg = pg;
+  cell.dataset.idx = pages[pg-1].indexOf(it);
+
+  if (it.whiteBg) cell.style.background = '#fff';
+
+  // drag handle for reorder
+  const dh = document.createElement('div');
+  dh.className = 'cell-drag-handle';
+  dh.textContent = '⠿';
+  dh.draggable = true;
+  dh.addEventListener('mousedown', e => e.stopPropagation());
+  dh.addEventListener('dragstart', e => {
+    dragSrc = {pg, idx: pages[pg-1].indexOf(it)};
+    e.dataTransfer.effectAllowed = 'move';
+  });
+  cell.appendChild(dh);
+
+  cell.addEventListener('dragover', e => { e.preventDefault(); cell.classList.add('drag-over-preview'); });
+  cell.addEventListener('dragleave', () => cell.classList.remove('drag-over-preview'));
+  cell.addEventListener('drop', e => {
+    e.preventDefault();
+    cell.classList.remove('drag-over-preview');
+    if (!dragSrc) return;
+    const destPg = +cell.dataset.pg;
+    const destIdx = +cell.dataset.idx;
+    const srcPg = dragSrc.pg;
+    const srcIdx = dragSrc.idx;
+    if (srcPg === destPg && srcIdx !== destIdx) {
+      const tmp = pages[srcPg-1][srcIdx];
+      pages[srcPg-1][srcIdx] = pages[destPg-1][destIdx];
+      pages[destPg-1][destIdx] = tmp;
+      refresh();
+    }
+    dragSrc = null;
+  });
 
   const ci = document.createElement('div');
   ci.className = 'ci';
@@ -384,7 +433,9 @@ function makeCell(it, ri, pg) {
     img.src = it.src;
     img.draggable = false;
     applyImgTransform(img, it);
+    if (it.blur) img.style.filter = `blur(${blurPx}px) brightness(${blurBright}%)`;
     ci.appendChild(img);
+    if (it.blur) { const ov = document.createElement('div'); ov.className = 'blur-overlay'; ci.appendChild(ov); }
     bindCellInteraction(cell, img, it);
     // Auto fit-to-width for fresh items (scale not yet adjusted by user)
     if (!it._fitted) {
@@ -640,7 +691,28 @@ function makeItemRow(it, i, pg) {
   rpLbl.style.cssText = 'font-size:9px;color:var(--ui-sub);line-height:1;';
   rpLbl.textContent = '재판';
   rpWrap.append(chk, rpLbl);
-  inpRow.append(inp, rpWrap);
+
+  const blurWrap = document.createElement('label');
+  blurWrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;cursor:pointer;height:100%;justify-content:center;';
+  const blurChk = document.createElement('input'); blurChk.type='checkbox'; blurChk.checked=!!it.blur;
+  blurChk.style.cssText = 'width:14px;height:14px;accent-color:var(--ui-accent);cursor:pointer;';
+  blurChk.addEventListener('change', ()=>{ it.blur=blurChk.checked; refresh(); });
+  const blurLbl = document.createElement('span');
+  blurLbl.style.cssText = 'font-size:9px;color:var(--ui-sub);line-height:1;';
+  blurLbl.textContent = '블러';
+  blurWrap.append(blurChk, blurLbl);
+
+  const wbWrap = document.createElement('label');
+  wbWrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;cursor:pointer;height:100%;justify-content:center;';
+  const wbChk = document.createElement('input'); wbChk.type='checkbox'; wbChk.checked=!!it.whiteBg;
+  wbChk.style.cssText = 'width:14px;height:14px;accent-color:var(--ui-accent);cursor:pointer;';
+  wbChk.addEventListener('change', ()=>{ it.whiteBg=wbChk.checked; refresh(); });
+  const wbLbl = document.createElement('span');
+  wbLbl.style.cssText = 'font-size:9px;color:var(--ui-sub);line-height:1;';
+  wbLbl.textContent = '흰배경';
+  wbWrap.append(wbChk, wbLbl);
+
+  inpRow.append(inp, rpWrap, blurWrap, wbWrap);
   grow.appendChild(inpRow);
   wrap.appendChild(grow);
 
@@ -1025,6 +1097,7 @@ function saveState() {
       badgeFg: $('#badgeFg') ? $('#badgeFg').value : '#ffffff',
       headerOn: $('#chkHeader') ? $('#chkHeader').checked : true,
       headerPad: $('#headerPad') ? $('#headerPad').value : '30',
+      blurPx, blurBright,
     };
     localStorage.setItem('mh_maker_state', JSON.stringify(state));
   } catch(e) {}
@@ -1063,6 +1136,8 @@ function loadState() {
     if (st.headerPad && $('#headerPad')) $('#headerPad').value = st.headerPad;
     if (st.headerOn === false && $('#chkHeader')) { $('#chkHeader').checked = false; }
     toggleHeader();
+    if (st.blurPx != null) { blurPx = st.blurPx; const sl=$('#sliderBlurPx'); if(sl){sl.value=blurPx;} const lbl=$('#blurPxVal'); if(lbl) lbl.textContent=blurPx; }
+    if (st.blurBright != null) { blurBright = st.blurBright; const sl=$('#sliderBlurBright'); if(sl){sl.value=blurBright;} const lbl=$('#blurBrightVal'); if(lbl) lbl.textContent=blurBright; }
     // update display labels for sliders
     if (st.storeOffset && $('#storeOffsetVal')) $('#storeOffsetVal').textContent = st.storeOffset;
     if (st.footerOffset && $('#footerOffsetVal')) $('#footerOffsetVal').textContent = st.footerOffset;
