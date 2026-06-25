@@ -894,19 +894,11 @@ async function downloadPNG() {
   if (!toDownload.length) { toast('사진을 먼저 올려주세요'); return; }
   toast('이미지 생성 중…');
 
-  // 폰트 임베드 (html-to-image 폰트 미로드 버그 방지)
-  let fontEmbedCSS = '';
-  try { fontEmbedCSS = await htmlToImage.getFontEmbedCSS($('#poster1')); } catch(e) {}
-
-  const opts = {pixelRatio:1, width:1080, height:1350, cacheBust:false, backgroundColor:'#fff', fontEmbedCSS};
-
   for (const {el, name} of toDownload) {
     try {
-      // 첫 번째 호출은 폰트 캐싱용, 두 번째가 실제 렌더
-      await htmlToImage.toPng(el, opts).catch(()=>{});
-      const dataUrl = await htmlToImage.toPng(el, opts);
+      const dataUrl = await htmlToImage.toPng(el, {pixelRatio:1, width:1080, height:1350, cacheBust:true, backgroundColor:'#fff'});
       const a = document.createElement('a'); a.download = name + '.png'; a.href = dataUrl; a.click();
-      await new Promise(r => setTimeout(r, 500));
+      await new Promise(r => setTimeout(r, 400));
     } catch(err) { toast('생성 실패: '+err.message); return; }
   }
   toast('다운로드 완료!');
