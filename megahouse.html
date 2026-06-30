@@ -86,7 +86,7 @@ button.ghost:hover{border-color:var(--ui-accent);}
 details.logos summary{font-size:11px;color:var(--ui-sub);cursor:pointer;padding:4px 0;}
 
 /* ═══ 스테이지 ═══ */
-.stage{flex:1;height:100vh;overflow:auto;display:flex;flex-direction:row;flex-wrap:wrap;align-items:flex-start;justify-content:center;
+.stage{flex:1;height:100vh;overflow:auto;display:flex;flex-direction:column;align-items:center;
   background:#dedad2;background-image:radial-gradient(#c8c4bc 1px,transparent 1px);
   background-size:20px 20px;padding:28px 28px 60px;gap:24px;}
 .stage-toolbar{width:100%;display:flex;justify-content:center;flex-shrink:0;}
@@ -284,6 +284,7 @@ details.logos summary{font-size:11px;color:var(--ui-sub);cursor:pointer;padding:
     <input type="range" id="previewZoom" min="20" max="100" value="50" step="1" style="width:120px;accent-color:#fff;cursor:pointer;" oninput="applyPreviewZoom(this.value)"/>
     <span id="previewZoomVal" style="color:#fff;font-size:11px;min-width:32px;">50%</span>
   </div></div>
+  <div id="postersRow" style="display:flex;flex-direction:row;gap:24px;align-items:flex-start;">
   <div class="poster-wrap" id="wrap1">
     <div class="page-badge">1페이지</div>
     <div class="scaler" id="sc1">
@@ -305,7 +306,7 @@ details.logos summary{font-size:11px;color:var(--ui-sub);cursor:pointer;padding:
     </div>
   </div>
 
-  <div class="poster-wrap" id="wrap2" style="display:none">
+  <div class="poster-wrap" id="wrap2" style="display:none;">
     <div class="page-badge">2페이지</div>
     <div class="scaler" id="sc2">
       <div class="poster" id="poster2">
@@ -325,6 +326,7 @@ details.logos summary{font-size:11px;color:var(--ui-sub);cursor:pointer;padding:
       </div>
     </div>
   </div>
+  </div><!-- /postersRow -->
 </div>
 
 <div class="toast" id="toast"></div>
@@ -997,15 +999,19 @@ function applyPreviewZoom(pct) {
   const vEl = $('#previewZoomVal'); if (vEl) vEl.textContent = pct + '%';
   const twoPages = pages[1].length > 0;
   const stageW = $('#stage').clientWidth - 56;
-  const slotW = twoPages ? (stageW - 24) / 2 : stageW; // 24 = gap between two posters
+  const slotW = twoPages ? (stageW - 24) / 2 : stageW;
   const autoScale = Math.min(1, slotW / 1080);
   const scale = autoScale * (pct / 50);
   ['sc1','sc2'].forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.style.transform = `scale(${scale})`;
-    el.style.width = '1080px';
-    el.style.height = (1350 * scale) + 'px';
+    const sc = document.getElementById(id);
+    if (!sc) return;
+    sc.style.transformOrigin = 'top left';
+    sc.style.transform = `scale(${scale})`;
+    sc.style.width = '1080px';
+    sc.style.height = (1350 * scale) + 'px';
+    // shrink the poster-wrap to visual width so siblings sit side-by-side
+    const wrap = sc.parentElement;
+    if (wrap) wrap.style.width = Math.round(1080 * scale) + 'px';
   });
 }
 
