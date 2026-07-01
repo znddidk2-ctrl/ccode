@@ -677,26 +677,28 @@ function makeCell(it, ri, pg) {
     });
     mainRow.appendChild(txtSpan);
 
+    const hasMemo = it.memoOn && it.memo;
+    // 메모 있으면 뱃지도 항상 topRow / 메모 없으면 뱃지는 mainRow(overflow시 topRow 이동)
     const badgeEls = [];
     if (it.reprint) {
       const b = document.createElement('span'); b.className='reprint-badge'; b.textContent='재판'; b.style.margin='0'; b.style.flexShrink='0';
-      mainRow.appendChild(b); badgeEls.push(b);
+      if (hasMemo) topRow.appendChild(b); else { mainRow.appendChild(b); badgeEls.push(b); }
     }
     if (it.special) {
       const b = document.createElement('span'); b.className='special-badge'; b.textContent='초회특전'; b.style.margin='0'; b.style.flexShrink='0';
-      mainRow.appendChild(b); badgeEls.push(b);
+      if (hasMemo) topRow.appendChild(b); else { mainRow.appendChild(b); badgeEls.push(b); }
     }
 
-    // topRow는 메모 있거나 뱃지 있을 때만 nm에 추가
-    if (topRow.children.length || badgeEls.length) nm.appendChild(topRow);
+    if (topRow.children.length) nm.appendChild(topRow);
     nm.appendChild(mainRow);
     cell.appendChild(nm);
 
-    // 렌더 후 overflow 감지 → 뱃지를 topRow(메모 옆)로 이동
-    if (badgeEls.length) {
+    // 메모 없을 때만 overflow 감지 → 뱃지 topRow로 이동
+    if (!hasMemo && badgeEls.length) {
       requestAnimationFrame(() => {
         if (mainRow.scrollWidth > mainRow.clientWidth + 1) {
           badgeEls.forEach(b => topRow.appendChild(b));
+          if (!nm.contains(topRow)) nm.insertBefore(topRow, mainRow);
           mainRow.style.overflow = '';
         }
       });
