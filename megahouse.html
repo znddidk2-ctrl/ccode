@@ -253,11 +253,11 @@ details.logos summary{font-size:11px;color:var(--ui-sub);cursor:pointer;padding:
   <button class="psec-toggle" onclick="toggleSection('sec-photo',this)" style="margin-top:8px">사진 수정 <span class="arrow">▾</span></button>
   <div class="psec-body" id="sec-photo" style="padding-top:10px">
     <div class="sec">사진 업로드</div>
-    <div class="ptabs">
-      <button class="ptab on" id="tab1" onclick="switchTab(1)">1페이지 <span id="tab1cnt">(0)</span></button>
-      <button class="ptab" id="tab2" onclick="switchTab(2)">2페이지 <span id="tab2cnt">(0)</span></button>
+    <div style="display:flex;gap:6px;margin-bottom:9px;align-items:center;">
+      <div class="ptabs" id="tabsRow" style="flex:1;margin:0;"></div>
+      <button class="ptab" id="btnAddPage" style="flex:0 0 auto;padding:7px 13px;font-size:13px;" title="새 페이지 추가">＋</button>
     </div>
-    <div class="dropzone" id="drop"><b>클릭</b>하거나 사진을 <b>드래그</b> (페이지당 최대 12장)</div>
+    <div class="dropzone" id="drop"><b>클릭</b>하거나 사진을 <b>드래그</b> — 현재 탭에 추가됩니다</div>
     <input type="file" id="fileInput" accept="image/*" multiple hidden/>
     <div class="items" id="itemList"></div>
     <div class="sec">제품명 일괄입력</div>
@@ -289,49 +289,7 @@ details.logos summary{font-size:11px;color:var(--ui-sub);cursor:pointer;padding:
     <input type="range" id="previewZoom" min="20" max="100" value="50" step="1" style="width:120px;accent-color:#fff;cursor:pointer;" oninput="applyPreviewZoom(this.value)"/>
     <span id="previewZoomVal" style="color:#fff;font-size:11px;min-width:32px;">50%</span>
   </div></div>
-  <div id="postersRow" style="display:flex;flex-direction:row;gap:24px;align-items:flex-start;">
-  <div class="poster-wrap" id="wrap1">
-    <div class="page-badge">1페이지</div>
-    <div class="scaler" id="sc1">
-      <div class="poster" id="poster1">
-        <div class="p-hd">
-          <div class="top">
-            <div class="brand"><img class="p-logo" id="logo1" alt="MH"/></div>
-            <div class="p-store" id="store1">메가하우스 공식 스토어</div>
-            <div class="p-open" id="open1">6/4 오픈</div>
-          </div>
-          <div class="p-title" id="title1">6월 신제품 예고</div>
-        </div>
-        <div class="p-grid" id="grid1"></div>
-        <div class="p-ft">
-          <div class="p-ft-note" id="ftNote1">국내외 사정에 따라 출시 시점 등 일부 사항이 변동될 수 있습니다.</div>
-          <div class="p-ft-logo-wrap"><img class="p-ft-logo" id="pwlogo1" alt="PW"/></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="poster-wrap" id="wrap2" style="display:none;">
-    <div class="page-badge">2페이지</div>
-    <div class="scaler" id="sc2">
-      <div class="poster" id="poster2">
-        <div class="p-hd">
-          <div class="top">
-            <div class="brand"><img class="p-logo" id="logo2" alt="MH"/></div>
-            <div class="p-store" id="store2">메가하우스 공식 스토어</div>
-            <div class="p-open" id="open2">6/4 오픈</div>
-          </div>
-          <div class="p-title" id="title2">6월 신제품 예고</div>
-        </div>
-        <div class="p-grid" id="grid2"></div>
-        <div class="p-ft">
-          <div class="p-ft-note" id="ftNote2">국내외 사정에 따라 출시 시점 등 일부 사항이 변동될 수 있습니다.</div>
-          <div class="p-ft-logo-wrap"><img class="p-ft-logo" id="pwlogo2" alt="PW"/></div>
-        </div>
-      </div>
-    </div>
-  </div>
-  </div><!-- /postersRow -->
+  <div id="postersRow" style="display:flex;flex-direction:row;gap:24px;align-items:flex-start;"></div><!-- /postersRow -->
 </div>
 
 <div class="toast" id="toast"></div>
@@ -343,21 +301,72 @@ const PW_SRC='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAARoAAACQCAYAAADX76Sw
 /* ═══════════════════════════════════════
    상태
 ═══════════════════════════════════════ */
-const pages = [
-  [],   // page 1: items[]  each = {id,src,name,scale,ox,oy}
-  [],   // page 2
-];
+const pages = [[]];
 let curPage = 1;
 let idSeq = 1;
-let rowFontSizes = [[36,36,36,36],[36,36,36,36]]; // [page][row]
-let firstRowFlex = [null, null]; // first row flex override per page
+let rowFontSizes = [[36,36,36,36]];
+let firstRowFlex = [null];
 let blurPx = 10;
 let blurBright = 80;
 let dragSrc = null;
 const $ = s => document.querySelector(s);
 
 /* ═══════════════════════════════════════
-   배치 알고리즘 (가로 2~3 · 세로 최대 4)
+   페이지 동적 생성
+═══════════════════════════════════════ */
+function makePosterWrap(pg) {
+  const wrap = document.createElement('div');
+  wrap.className = 'poster-wrap'; wrap.id = 'wrap'+pg;
+  wrap.innerHTML = `<div class="page-badge">${pg}페이지</div>
+    <div class="scaler" id="sc${pg}">
+      <div class="poster" id="poster${pg}">
+        <div class="p-hd"><div class="top">
+          <div class="brand"><img class="p-logo" id="logo${pg}" alt="MH"/></div>
+          <div class="p-store" id="store${pg}">메가하우스 공식 스토어</div>
+          <div class="p-open" id="open${pg}">6/4 오픈</div>
+        </div><div class="p-title" id="title${pg}">6월 신제품 예고</div></div>
+        <div class="p-grid" id="grid${pg}"></div>
+        <div class="p-ft">
+          <div class="p-ft-note" id="ftNote${pg}">국내외 사정에 따라 출시 시점 등 일부 사항이 변동될 수 있습니다.</div>
+          <div class="p-ft-logo-wrap"><img class="p-ft-logo" id="pwlogo${pg}" alt="PW"/></div>
+        </div>
+      </div>
+    </div>`;
+  return wrap;
+}
+function ensurePosterWrap(pg) {
+  if (!document.getElementById('wrap'+pg)) {
+    document.getElementById('postersRow').appendChild(makePosterWrap(pg));
+    syncHeader();
+    syncLogoSize();
+    initWrapLogos(pg);
+  }
+}
+function renderTabs() {
+  const row = document.getElementById('tabsRow');
+  row.innerHTML = '';
+  pages.forEach((p, i) => {
+    const pg = i+1;
+    const btn = document.createElement('button');
+    btn.className = 'ptab' + (curPage===pg?' on':'');
+    btn.id = 'tab'+pg;
+    btn.onclick = () => switchTab(pg);
+    btn.textContent = `${pg}페이지 (${p.length})`;
+    row.appendChild(btn);
+  });
+}
+function addPage() {
+  pages.push([]);
+  rowFontSizes.push([36,36,36,36]);
+  firstRowFlex.push(null);
+  const pg = pages.length;
+  ensurePosterWrap(pg);
+  switchTab(pg);
+  refresh();
+}
+
+/* ═══════════════════════════════════════
+   배치 알고리즘
 ═══════════════════════════════════════ */
 function computeRows(n) {
   n = Math.min(n, 12);
@@ -778,7 +787,7 @@ function makeItemRow(it, i, pg) {
     const insertIdx = (spg === dpg && si < di) ? di : di;
     pages[dpg-1].splice(insertIdx, 0, moved);
     // switch to destination page if cross-page
-    if (spg !== dpg) { curPage = dpg; $('#tab1').className='ptab'+(dpg===1?' on':''); $('#tab2').className='ptab'+(dpg===2?' on':''); }
+    if (spg !== dpg) { curPage = dpg; renderTabs(); }
     refresh();
   });
 
@@ -788,13 +797,7 @@ function makeItemRow(it, i, pg) {
 function renderItemList() {
   const list = $('#itemList');
   list.innerHTML = '';
-  [1, 2].forEach(pg => {
-    if (pg !== curPage) return; // only show current page's items
-    pages[pg-1].forEach((it, i) => list.appendChild(makeItemRow(it, i, pg)));
-  });
-  // 탭 카운트 업데이트
-  $('#tab1cnt').textContent = `(${pages[0].length})`;
-  $('#tab2cnt').textContent = `(${pages[1].length})`;
+  pages[curPage-1].forEach((it, i) => list.appendChild(makeItemRow(it, i, curPage)));
 }
 
 function mkbtn(t, fn) {
@@ -834,14 +837,13 @@ function syncHeader() {
   const fSize = $('#footerFontSize').value + 'px';
   const offset = $('#storeOffset') ? $('#storeOffset').value + 'px' : '0px';
 
-  [1,2].forEach(p => {
-    $(`#title${p}`).textContent = m ? `${m} 신제품 예고` : '신제품 예고';
-    $(`#title${p}`).style.fontSize = tSize;
-    $(`#open${p}`).textContent = o ? `${o} 오픈` : '';
-    $(`#store${p}`).textContent = s;
-    $(`#store${p}`).style.fontSize = sSize;
-    $(`#store${p}`).style.fontWeight = $('#storeFontWeight') ? $('#storeFontWeight').value : '800';
-    $(`#store${p}`).style.transform = `translateX(${offset})`;
+  pages.forEach((_, i) => { const p = i+1;
+    const titleEl = $(`#title${p}`); if (!titleEl) return;
+    titleEl.textContent = m ? `${m} 신제품 예고` : '신제품 예고';
+    titleEl.style.fontSize = tSize;
+    const openEl = $(`#open${p}`); if (openEl) openEl.textContent = o ? `${o} 오픈` : '';
+    const storeEl = $(`#store${p}`);
+    if (storeEl) { storeEl.textContent = s; storeEl.style.fontSize = sSize; storeEl.style.fontWeight = $('#storeFontWeight') ? $('#storeFontWeight').value : '800'; storeEl.style.transform = `translateX(${offset})`; }
     const fn = $(`#ftNote${p}`);
     const fo = $('#footerOffset') ? +$('#footerOffset').value : 0;
     if (fn) { fn.textContent = ft; fn.style.fontSize = fSize; fn.style.transform = `translateX(${fo}px)`; }
@@ -855,9 +857,7 @@ function toggleSection(id, btn) {
 function toggleHeader() {
   const on = $('#chkHeader').checked;
   const pad = $('#headerPad') ? $('#headerPad').value + 'px' : '30px';
-  ['#poster1','#poster2'].forEach(id => {
-    const el = document.querySelector(id);
-    if (!el) return;
+  document.querySelectorAll('.poster').forEach(el => {
     el.classList.toggle('no-header', !on);
     el.style.setProperty('--hpad', pad);
   });
@@ -865,10 +865,15 @@ function toggleHeader() {
 }
 function syncLogoSize() {
   const topSz = $('#logoSize').value + 'px';
-  ['#logo1','#logo2'].forEach(id => { const el=$(id); if(el) el.style.height=topSz; });
-  // PW logo: use transform scale so footer layout doesn't shift
+  document.querySelectorAll('.p-logo').forEach(el => el.style.height = topSz);
   const pwScale = (+$('#pwLogoSize').value) / 32;
-  ['#pwlogo1','#pwlogo2'].forEach(id => { const el=$(id); if(el) el.style.transform=`scale(${pwScale})`; });
+  document.querySelectorAll('.p-ft-logo').forEach(el => el.style.transform = `scale(${pwScale})`);
+}
+function initWrapLogos(pg) {
+  const logoEl = document.getElementById('logo'+pg);
+  const pwEl = document.getElementById('pwlogo'+pg);
+  if (logoEl) logoEl.src = MEGA_SRC;
+  if (pwEl) pwEl.src = PW_SRC;
 }
 function nudgeStore(delta) {
   const sl = $('#storeOffset');
@@ -967,8 +972,7 @@ async function downloadPNG() {
   if (typeof htmlToImage === 'undefined') { toast('라이브러리 로드 실패 (인터넷 필요)'); return; }
   const m = $('#inMonth').value.trim().replace(/\s+/g,'') || 'preview';
   const toDownload = [];
-  if (pages[0].length) toDownload.push({el:$('#poster1'), name:`megahouse_${m}_p1`});
-  if (pages[1].length) toDownload.push({el:$('#poster2'), name:`megahouse_${m}_p2`});
+  pages.forEach((pg, i) => { if (pg.length) toDownload.push({el:document.getElementById('poster'+(i+1)), name:`megahouse_${m}_p${i+1}`}); });
   if (!toDownload.length) { toast('사진을 먼저 올려주세요'); return; }
   toast('이미지 생성 중…');
 
@@ -995,19 +999,18 @@ function applyPreviewZoom(pct) {
   _previewZoomPct = +pct;
   const el = $('#previewZoom'); if (el) el.value = pct;
   const vEl = $('#previewZoomVal'); if (vEl) vEl.textContent = pct + '%';
-  const twoPages = pages[1].length > 0;
+  const numPages = pages.length;
   const stageW = $('#stage').clientWidth - 56;
-  const slotW = twoPages ? (stageW - 24) / 2 : stageW;
+  const slotW = numPages > 1 ? (stageW - 24*(numPages-1)) / numPages : stageW;
   const autoScale = Math.min(1, slotW / 1080);
   const scale = autoScale * (pct / 50);
-  ['sc1','sc2'].forEach(id => {
-    const sc = document.getElementById(id);
+  pages.forEach((_, i) => {
+    const sc = document.getElementById('sc'+(i+1));
     if (!sc) return;
     sc.style.transformOrigin = 'top left';
     sc.style.transform = `scale(${scale})`;
     sc.style.width = '1080px';
     sc.style.height = (1350 * scale) + 'px';
-    // shrink the poster-wrap to visual width so siblings sit side-by-side
     const wrap = sc.parentElement;
     if (wrap) wrap.style.width = Math.round(1080 * scale) + 'px';
   });
@@ -1018,8 +1021,7 @@ function applyPreviewZoom(pct) {
 ═══════════════════════════════════════ */
 function switchTab(pg) {
   curPage = pg;
-  $('#tab1').className = 'ptab' + (pg===1?' on':'');
-  $('#tab2').className = 'ptab' + (pg===2?' on':'');
+  renderTabs();
   renderItemList();
   renderRowControls();
 }
@@ -1028,12 +1030,10 @@ function switchTab(pg) {
    전체 갱신
 ═══════════════════════════════════════ */
 function refresh() {
+  renderTabs();
   renderItemList();
-  renderGrid(1);
-  renderGrid(2);
+  pages.forEach((_, i) => { ensurePosterWrap(i+1); renderGrid(i+1); });
   renderRowControls();
-  // 2페이지 있으면 보여주기
-  $('#wrap2').style.display = pages[1].length ? 'flex' : 'none';
   requestAnimationFrame(fitScale);
 }
 
@@ -1053,14 +1053,21 @@ $('#inFooter').addEventListener('input', syncHeader);
 
 // gradSlider replaced by syncGrad (gradStart/gradWidth/gradOpacity)
 
-$('#logoMega').addEventListener('change', e => e.target.files[0] && loadLogoFile(e.target.files[0], ['#logo1','#logo2']));
-$('#logoPW').addEventListener('change', e => e.target.files[0] && loadLogoFile(e.target.files[0], ['#pwlogo1','#pwlogo2']));
-
+$('#logoMega').addEventListener('change', e => { if (!e.target.files[0]) return; loadLogoFile(e.target.files[0], pages.map((_,i)=>'#logo'+(i+1))); });
+$('#logoPW').addEventListener('change', e => { if (!e.target.files[0]) return; loadLogoFile(e.target.files[0], pages.map((_,i)=>'#pwlogo'+(i+1))); });
+$('#btnAddPage').addEventListener('click', addPage);
 $('#btnApplyBulk').addEventListener('click', applyBulk);
 $('#btnDownload').addEventListener('click', downloadPNG);
 $('#btnReset').addEventListener('click', () => {
   if (!confirm('모두 초기화할까요?')) return;
-  pages[0]=[]; pages[1]=[]; rowFontSizes=[[36,36,36,36],[36,36,36,36]]; firstRowFlex=[null,null]; localStorage.removeItem('mh_maker_state');
+  pages.splice(0, pages.length, []);
+  rowFontSizes = [[36,36,36,36]]; firstRowFlex = [null];
+  // clear all poster wraps and recreate page 1
+  const row = document.getElementById('postersRow');
+  row.innerHTML = '';
+  curPage = 1;
+  localStorage.removeItem('mh_maker_state');
+  ensurePosterWrap(1);
   refresh();
 });
 
@@ -1079,8 +1086,7 @@ function toast(msg) {
 /* ═══════════════════════════════════════
    초기화
 ═══════════════════════════════════════ */
-['#logo1','#logo2'].forEach(id => { const el=$(id); if(el) el.src=MEGA_SRC; });
-['#pwlogo1','#pwlogo2'].forEach(id => { const el=$(id); if(el) el.src=PW_SRC; });
+// logos initialized per-wrap by initWrapLogos()
 
 /* ── localStorage 캐시 ── */
 function saveState() {
@@ -1119,12 +1125,15 @@ function loadState() {
     const raw = localStorage.getItem('mh_maker_state');
     if (!raw) return;
     const st = JSON.parse(raw);
-    if (st.pages) {
-      pages[0] = (st.pages[0] || []).map(it => ({...it, id: idSeq++}));
-      pages[1] = (st.pages[1] || []).map(it => ({...it, id: idSeq++}));
+    if (st.pages && st.pages.length) {
+      pages.splice(0, pages.length, ...st.pages.map(pg => (pg||[]).map(it => ({...it, id: idSeq++}))));
     }
-    rowFontSizes = st.rowFontSizes || [[36,36,36,36],[36,36,36,36]];
-    firstRowFlex = st.firstRowFlex || [null, null];
+    rowFontSizes = st.rowFontSizes || pages.map(() => [36,36,36,36]);
+    firstRowFlex = st.firstRowFlex || pages.map(() => null);
+    // ensure poster wraps for all loaded pages
+    const postersRow = document.getElementById('postersRow');
+    if (postersRow) postersRow.innerHTML = '';
+    pages.forEach((_, i) => ensurePosterWrap(i+1));
     // restore panel inputs
     if (st.month) $('#inMonth').value = st.month;
     if (st.open)  $('#inOpen').value  = st.open;
@@ -1155,6 +1164,7 @@ function loadState() {
   } catch(e) {}
 }
 
+ensurePosterWrap(1);
 loadState();
 syncHeader();
 syncLogoSize();
