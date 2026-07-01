@@ -573,10 +573,19 @@ function makeCell(it, ri, pg) {
   }
   cell.appendChild(ci);
 
-  // Always render .name div if there's a name OR reprint badge
-  if ((it.name && it.name.trim()) || it.reprint) {
+  // Always render .name div if there's a name OR reprint badge OR memo
+  if ((it.name && it.name.trim()) || it.reprint || it.memoOn) {
     const nm = document.createElement('div');
     nm.className = 'name';
+
+    // 메모 위 배치
+    if (it.memoOn && it.memo && it.memoPos === 'above') {
+      const memoEl = document.createElement('div');
+      memoEl.className = 'cell-memo cell-memo-above';
+      memoEl.textContent = it.memo;
+      memoEl.style.cssText = `font-size:${it.memoSize||14}px;color:${it.memoColor||'#fff'};font-weight:700;margin-bottom:4px;text-shadow:1px 2px 5px rgba(0,0,0,.7);`;
+      nm.appendChild(memoEl);
+    }
 
     const txtSpan = document.createElement('span');
     txtSpan.className = 'name-text';
@@ -615,6 +624,14 @@ function makeCell(it, ri, pg) {
       badge.className = 'reprint-badge';
       badge.textContent = '재판';
       nm.appendChild(badge);
+    }
+    // 메모 옆 배치
+    if (it.memoOn && it.memo && (!it.memoPos || it.memoPos === 'side')) {
+      const memoEl = document.createElement('span');
+      memoEl.className = 'cell-memo cell-memo-side';
+      memoEl.textContent = it.memo;
+      memoEl.style.cssText = `font-size:${it.memoSize||14}px;color:${it.memoColor||'#fff'};font-weight:700;margin-left:8px;vertical-align:middle;text-shadow:1px 2px 5px rgba(0,0,0,.7);`;
+      nm.appendChild(memoEl);
     }
     cell.appendChild(nm);
   }
@@ -869,22 +886,50 @@ function makeItemRow(it, i, pg) {
   inpRow.append(inp, rpWrap, blurWrap, wbWrap, memoWrap);
   grow.appendChild(inpRow);
 
-  // 메모 입력칸 (체크 시 표시)
+  // 메모 컨트롤 행 (체크 시 표시)
   const memoRow = document.createElement('div');
-  memoRow.style.cssText = `display:${it.memoOn ? 'flex' : 'none'};margin-top:4px;`;
+  memoRow.style.cssText = `display:${it.memoOn ? 'flex' : 'none'};margin-top:4px;gap:4px;align-items:center;flex-wrap:wrap;`;
+
   const memoInp = document.createElement('input'); memoInp.type='text';
-  memoInp.placeholder = '메모 입력…';
-  memoInp.value = it.memo || '';
-  memoInp.style.cssText = 'flex:1;height:30px;background:var(--ui-bg);border:1px solid var(--ui-border);color:var(--ui-text);border-radius:5px;padding:4px 7px;font-size:12px;font-family:inherit;';
-  memoInp.addEventListener('input', () => { it.memo = memoInp.value; saveState(); });
-  memoRow.appendChild(memoInp);
+  memoInp.placeholder = '메모 텍스트…'; memoInp.value = it.memo || '';
+  memoInp.style.cssText = 'flex:1;min-width:60px;height:28px;background:var(--ui-bg);border:1px solid var(--ui-border);color:var(--ui-text);border-radius:5px;padding:3px 6px;font-size:12px;font-family:inherit;';
+  memoInp.addEventListener('input', () => { it.memo = memoInp.value; renderGrid(pg); saveState(); });
+
+  const memoSizeInp = document.createElement('input'); memoSizeInp.type='number';
+  memoSizeInp.min=8; memoSizeInp.max=40; memoSizeInp.value = it.memoSize||14;
+  memoSizeInp.style.cssText = 'width:44px;height:28px;background:var(--ui-bg);border:1px solid var(--ui-border);color:var(--ui-text);border-radius:5px;padding:3px 4px;font-size:12px;font-family:inherit;text-align:center;';
+  memoSizeInp.title='글자크기';
+  memoSizeInp.addEventListener('input', () => { it.memoSize = +memoSizeInp.value; renderGrid(pg); saveState(); });
+
+  const memoColorInp = document.createElement('input'); memoColorInp.type='color';
+  memoColorInp.value = it.memoColor||'#ffffff';
+  memoColorInp.style.cssText = 'width:28px;height:28px;border:none;background:none;cursor:pointer;padding:0;border-radius:4px;';
+  memoColorInp.title='글자색';
+  memoColorInp.addEventListener('input', () => { it.memoColor = memoColorInp.value; renderGrid(pg); saveState(); });
+
+  const posStyle = 'height:28px;padding:0 7px;border-radius:5px;border:1px solid var(--ui-border);font-size:11px;cursor:pointer;font-family:inherit;';
+  const posAboveBtn = document.createElement('button'); posAboveBtn.textContent='위'; posAboveBtn.style.cssText=posStyle;
+  const posSideBtn  = document.createElement('button'); posSideBtn.textContent='옆'; posSideBtn.style.cssText=posStyle;
+
+  function updatePosBtns() {
+    const pos = it.memoPos||'side';
+    posAboveBtn.style.background = pos==='above' ? 'var(--ui-accent)' : 'var(--ui-bg)';
+    posAboveBtn.style.color      = pos==='above' ? '#fff' : 'var(--ui-text)';
+    posSideBtn.style.background  = pos==='side'  ? 'var(--ui-accent)' : 'var(--ui-bg)';
+    posSideBtn.style.color       = pos==='side'  ? '#fff' : 'var(--ui-text)';
+  }
+  updatePosBtns();
+  posAboveBtn.addEventListener('click', () => { it.memoPos='above'; updatePosBtns(); renderGrid(pg); saveState(); });
+  posSideBtn.addEventListener('click',  () => { it.memoPos='side';  updatePosBtns(); renderGrid(pg); saveState(); });
+
+  memoRow.append(memoInp, memoSizeInp, memoColorInp, posAboveBtn, posSideBtn);
   grow.appendChild(memoRow);
 
   memoChk.addEventListener('change', () => {
     it.memoOn = memoChk.checked;
     memoRow.style.display = it.memoOn ? 'flex' : 'none';
-    if (it.memoOn) memoInp.focus();
-    saveState();
+    if (it.memoOn) { if (!it.memoPos) it.memoPos='side'; memoInp.focus(); }
+    renderGrid(pg); saveState();
   });
 
   wrap.appendChild(grow);
