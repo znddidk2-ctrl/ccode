@@ -934,13 +934,26 @@ function syncBadgeStyle() {
 function addFiles(files) {
   const imgs = [...files].filter(f => f.type.startsWith('image/'));
   if (!imgs.length) return;
-  const targetArr = pages[curPage - 1];
+  const MAX = 12;
   let pending = imgs.length;
+  const startPage = curPage;
   imgs.forEach(f => {
     const r = new FileReader();
     r.onload = e => resizeDataURL(e.target.result, 900, src => {
-      targetArr.push({id:idSeq++, src, name:'', scale:1, ox:0, oy:0});
-      if (--pending === 0) refresh();
+      // find a page with room, starting from startPage
+      let pg = startPage;
+      while (pages[pg - 1] && pages[pg - 1].length >= MAX) pg++;
+      // create new pages as needed
+      while (pages.length < pg) {
+        pages.push([]);
+        rowFontSizes.push([36,36,36,36]);
+        firstRowFlex.push(null);
+      }
+      pages[pg - 1].push({id:idSeq++, src, name:'', scale:1, ox:0, oy:0});
+      if (--pending === 0) {
+        pages.forEach((_, i) => ensurePosterWrap(i+1));
+        refresh();
+      }
     });
     r.readAsDataURL(f);
   });
