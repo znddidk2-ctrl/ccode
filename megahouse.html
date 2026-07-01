@@ -999,8 +999,8 @@ function syncBadgeStyle() {
   const fg = $('#badgeFg') ? $('#badgeFg').value.trim() : '#ffffff';
   let style = document.getElementById('badgeDynStyle');
   if (!style) { style = document.createElement('style'); style.id='badgeDynStyle'; document.head.appendChild(style); }
-  const blurRule = badgeBlur ? '' : '.cell:has(.reprint-badge) .blur-bg{filter:none!important;}';
-  style.textContent = `.reprint-badge{background:${bg}!important;color:${fg}!important;}${blurRule}`;
+  const blurRule = badgeBlur ? 'filter:blur(2px)!important;' : 'filter:none!important;';
+  style.textContent = `.reprint-badge{background:${bg}!important;color:${fg}!important;${blurRule}}`;
 }
 function toggleBadgeBlur() {
   badgeBlur = !badgeBlur;
