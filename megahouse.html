@@ -368,6 +368,8 @@ function makePosterWrap(pg) {
         </div>
       </div>
     </div>`;
+  // clicking the poster switches to that page's tab
+  wrap.addEventListener('click', () => { if (curPage !== pg) switchTab(pg); });
   return wrap;
 }
 function ensurePosterWrap(pg) {
