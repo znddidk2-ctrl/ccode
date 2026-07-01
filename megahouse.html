@@ -856,8 +856,37 @@ function makeItemRow(it, i, pg) {
   wbLbl.textContent = '흰배경';
   wbWrap.append(wbChk, wbLbl);
 
-  inpRow.append(inp, rpWrap, blurWrap, wbWrap);
+  // 메모 체크박스
+  const memoWrap = document.createElement('label');
+  memoWrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;cursor:pointer;height:100%;justify-content:center;';
+  const memoChk = document.createElement('input'); memoChk.type='checkbox'; memoChk.checked=!!it.memoOn;
+  memoChk.style.cssText = 'width:14px;height:14px;accent-color:var(--ui-accent);cursor:pointer;';
+  const memoLbl = document.createElement('span');
+  memoLbl.style.cssText = 'font-size:9px;color:var(--ui-sub);line-height:1;';
+  memoLbl.textContent = '메모';
+  memoWrap.append(memoChk, memoLbl);
+
+  inpRow.append(inp, rpWrap, blurWrap, wbWrap, memoWrap);
   grow.appendChild(inpRow);
+
+  // 메모 입력칸 (체크 시 표시)
+  const memoRow = document.createElement('div');
+  memoRow.style.cssText = `display:${it.memoOn ? 'flex' : 'none'};margin-top:4px;`;
+  const memoInp = document.createElement('input'); memoInp.type='text';
+  memoInp.placeholder = '메모 입력…';
+  memoInp.value = it.memo || '';
+  memoInp.style.cssText = 'flex:1;height:30px;background:var(--ui-bg);border:1px solid var(--ui-border);color:var(--ui-text);border-radius:5px;padding:4px 7px;font-size:12px;font-family:inherit;';
+  memoInp.addEventListener('input', () => { it.memo = memoInp.value; saveState(); });
+  memoRow.appendChild(memoInp);
+  grow.appendChild(memoRow);
+
+  memoChk.addEventListener('change', () => {
+    it.memoOn = memoChk.checked;
+    memoRow.style.display = it.memoOn ? 'flex' : 'none';
+    if (it.memoOn) memoInp.focus();
+    saveState();
+  });
+
   wrap.appendChild(grow);
 
   // ctrl: swap page + delete (▲▼ removed; drag handles reorder)
