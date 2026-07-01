@@ -184,7 +184,8 @@ details.logos summary{font-size:11px;color:var(--ui-sub);cursor:pointer;padding:
   background:rgba(180,0,0,.65);color:#fff;font-size:15px;cursor:pointer;
   opacity:0;transition:opacity .15s;user-select:none;line-height:1;}
 .cell:hover .cell-del-btn{opacity:1;}
-.cell.drag-over-preview{outline:3px solid #4c8dff;outline-offset:-3px;}</style>
+.cell.drag-over-preview{outline:3px solid #4c8dff;outline-offset:-3px;}
+.p-grid.drag-over-grid{outline:3px dashed #4c8dff;outline-offset:-4px;background:rgba(76,141,255,.07);}</style>
 </head>
 <body>
 
@@ -398,6 +399,23 @@ function renderGrid(pg) {
     }
     gridEl.appendChild(row);
   });
+  // allow dropping onto empty grid area (moves item to end of this page)
+  gridEl.addEventListener('dragover', e => { e.preventDefault(); gridEl.classList.add('drag-over-grid'); });
+  gridEl.addEventListener('dragleave', e => { if (!gridEl.contains(e.relatedTarget)) gridEl.classList.remove('drag-over-grid'); });
+  gridEl.addEventListener('drop', e => {
+    e.preventDefault();
+    gridEl.classList.remove('drag-over-grid');
+    if (!dragSrc) return;
+    const srcPg = dragSrc.pg;
+    const srcIdx = dragSrc.idx;
+    dragSrc = null;
+    if (srcPg === pg) return; // same page, ignore (cell handles same-page reorder)
+    if (pages[pg-1].length >= 12) { toast('대상 페이지가 꽉 찼습니다 (최대 12장)'); return; }
+    const [moved] = pages[srcPg-1].splice(srcIdx, 1);
+    pages[pg-1].push(moved);
+    curPage = pg;
+    refresh();
+  });
   requestAnimationFrame(() => { applyRowFontSizes(pg); applyRowHeights(pg); syncGrad(); });
 }
 
@@ -444,13 +462,20 @@ function makeCell(it, ri, pg) {
     const destIdx = +cell.dataset.idx;
     const srcPg = dragSrc.pg;
     const srcIdx = dragSrc.idx;
-    if (srcPg === destPg && srcIdx !== destIdx) {
+    dragSrc = null;
+    if (srcPg === destPg) {
+      if (srcIdx === destIdx) return;
+      // same page: swap
       const tmp = pages[srcPg-1][srcIdx];
       pages[srcPg-1][srcIdx] = pages[destPg-1][destIdx];
       pages[destPg-1][destIdx] = tmp;
-      refresh();
+    } else {
+      // cross-page: swap items between pages (no limit concern since counts stay same)
+      const tmp = pages[srcPg-1][srcIdx];
+      pages[srcPg-1][srcIdx] = pages[destPg-1][destIdx];
+      pages[destPg-1][destIdx] = tmp;
     }
-    dragSrc = null;
+    refresh();
   });
 
   const ci = document.createElement('div');
